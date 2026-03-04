@@ -25,10 +25,3 @@ class Match:
         return f'{self.side_one} vs {self.side_two} - {self.tournament} ({self.stage}) @ ' \
                f'{self.start_time.strftime("%Y-%m-%d %H:%M:%S")}'
 
-
-def main():
-    pass
-
-
-if __name__ == '__main__':
-    main()

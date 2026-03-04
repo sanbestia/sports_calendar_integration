@@ -104,11 +104,3 @@ def update_events(creds, calendar_id, game_list, time_zone):
             except HttpError as error:
                 print(f"An error occurred: {error}")
     print()
-
-
-def main():
-    pass
-
-
-if __name__ == '__main__':
-    main()

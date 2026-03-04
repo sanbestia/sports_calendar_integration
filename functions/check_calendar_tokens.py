@@ -48,11 +48,3 @@ def check_calendar_tokens() -> Credentials:
         print("Available tokens are valid")
     print()
     return creds
-
-
-def main():
-    pass
-
-
-if __name__ == '__main__':
-    main()
