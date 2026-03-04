@@ -14,5 +14,8 @@ credentials.json
 token.json
 .env
 
+# Personal queries
+queries.json
+
 # Execution bat
 calendar.bat

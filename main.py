@@ -18,6 +18,8 @@ import sys
 
 
 import os
+import json
+import argparse
 import datetime
 from dotenv import load_dotenv
 from tzlocal import get_localzone
@@ -27,85 +29,65 @@ from functions.calendar_methods import update_events
 from functions.get_next_matches import get_next_matches
 from functions.get_ids import get_ids
 from functions.time_keeper import wait
+from config import REFRESH_HOURS
 
 load_dotenv()
 
-SEARCHES = {
-    "Carlos Alcaraz": {
-        "id": "275923",
-        "sport": "tennis",
-        "player_type": "player",
-        "calendar": os.getenv("CALENDAR_ID_TENNIS")
-    },
-    "Jannik Sinner": {
-        "id": "206570",
-        "sport": "tennis",
-        "player_type": "player",
-        "calendar": os.getenv("CALENDAR_ID_TENNIS")
-    },
-    "Aryna Sabalenka": {
-        "id": "157754",
-        "sport": "tennis",
-        "player_type": "player",
-        "calendar": os.getenv("CALENDAR_ID_TENNIS")
-    },
-    "Argentina - Football National Team": {
-        "id": "4819",
-        "sport": "football",
-        "player_type": "team",
-        "calendar": os.getenv("CALENDAR_ID_FOOTBALL")
-    },
-    "Argentina - Football U23 National Team": {
-        "id": "24246",
-        "sport": "football",
-        "player_type": "team",
-        "calendar": os.getenv("CALENDAR_ID_FOOTBALL")
-    },
-    "San Antonio Spurs": {
-        "id": "3429",
-        "sport": "basketball",
-        "player_type": "team",
-        "calendar": os.getenv("CALENDAR_ID_BASKETBALL")
-    },
-    "Los Angeles Lakers": {
-        "id": "3427",
-        "sport": "basketball",
-        "player_type": "team",
-        "calendar": os.getenv("CALENDAR_ID_BASKETBALL")
-    },
-    "Indiana Fever": {
-        "id": "3452",
-        "sport": "basketball",
-        "player_type": "team",
-        "calendar": os.getenv("CALENDAR_ID_BASKETBALL")
-    },
-    "T1": {
-        "id": "364366",
-        "sport": "esport",
-        "player_type": "team",
-        "calendar": os.getenv("CALENDAR_ID_ESPORT")
-    },
-    "France - Basketball National Team": {
-        "id": "6248",
-        "sport": "basketball",
-        "player_type": "team",
-        "calendar": os.getenv("CALENDAR_ID_BASKETBALL")
-    }
-}
+
+def load_queries(filepath: str) -> dict:
+    """Load queries from a JSON file, resolving calendar IDs from environment variables."""
+    with open(filepath, "r") as f:
+        raw = json.load(f)
+
+    for name, data in raw.items():
+        env_key = data.get("calendar")
+        resolved = os.getenv(env_key)
+        if not resolved:
+            raise ValueError(f"Environment variable '{env_key}' not found for '{name}'")
+        data["calendar"] = resolved
+
+    return raw
+
+
+def build_queries_from_get_ids() -> dict:
+    """Interactively build queries using get_ids(), prompting for calendar IDs."""
+    id_dict = get_ids()
+    queries = {}
+    for team_id, data in id_dict.items():
+        calendar_id = input(f"Enter calendar id {data['name']}:")
+        queries[data["name"]] = {
+            "id": team_id,
+            "sport": data["sport"],
+            "player_type": "team",
+            "calendar": calendar_id
+        }
+    return queries
 
 
 def main() -> None:
-    tz = get_localzone()
+    parser = argparse.ArgumentParser(description="Sports Calendar Integration")
+    parser.add_argument(
+        "--queries",
+        type=str,
+        help="Path to a JSON file containing search queries",
+        default=None
+    )
+    args = parser.parse_args()
 
+    tz = get_localzone()
     creds = check_calendar_tokens()
 
-    refresh_hours = 6
-    refresh_rate = refresh_hours * 60
+    if args.queries:
+        queries = load_queries(args.queries)
+    else:
+        queries = build_queries_from_get_ids()
+
+    refresh_rate = REFRESH_HOURS * 60
 
     print()
 
     while True:
-        for name, data_dict in SEARCHES.items():
+        for name, data_dict in queries.items():
             data = get_next_matches(
                 team_id=data_dict["id"],
                 team_name=name,
