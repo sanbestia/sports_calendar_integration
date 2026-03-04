@@ -125,4 +125,7 @@ Please make sure any new functionality is covered by tests.
 - [ ] Create user interface?
 - [ ] Create webapp to host it?
 - [ ] Implement database keeping module
+- [ ] Add support for other games:
+    - [ ] Chess
+    - [ ] AoEII
 
