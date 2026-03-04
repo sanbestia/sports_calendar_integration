@@ -18,11 +18,6 @@ ICONS: dict[str, str] = {
 }
 
 
-def datetime_to_calendar_format(date_time: datetime) -> str:
-    date_format: str = "%Y-%m-%dT%H:%M:%S%:z"
-    return date_time.strftime(date_format)
-
-
 def new_calendar(creds) -> None:
     try:
         service = build("calendar", "v3", credentials=creds)
@@ -56,11 +51,11 @@ def update_events(creds, calendar_id, game_list, time_zone):
                     event_to_update['summary'] = \
                         f'{ICONS[game.sport]} {game.side_one} vs {game.side_two} - {game.tournament} ({game.stage})'
                     event_to_update['start'] = {
-                        'dateTime': datetime_to_calendar_format(game.start_time),
+                        'dateTime': game.start_time.isoformat(),
                         'timeZone': time_zone,
                     }
                     event_to_update['end'] = {
-                        'dateTime': datetime_to_calendar_format(game.expected_end_time),
+                        'dateTime': game.expected_end_time.isoformat(),
                         'timeZone': time_zone,
                     }
                     event_to_update['description'] = (f'{game.side_one}\n'
@@ -83,11 +78,11 @@ def update_events(creds, calendar_id, game_list, time_zone):
                 event = {
                     'summary': f'{ICONS[game.sport]} {game.side_one} vs {game.side_two} - {game.tournament} ({game.stage})',
                     'start': {
-                        'dateTime': datetime_to_calendar_format(game.start_time),
+                        'dateTime': game.start_time.isoformat(),
                         'timeZone': time_zone,
                     },
                     'end': {
-                        'dateTime': datetime_to_calendar_format(game.expected_end_time),
+                        'dateTime': game.expected_end_time.isoformat(),
                         'timeZone': time_zone,
                     },
                     'description':
