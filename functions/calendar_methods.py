@@ -18,16 +18,14 @@ ICONS: dict[str, str] = {
 }
 
 
-def new_calendar(creds) -> None:
+def new_calendar(creds, calendar_name: str) -> dict | None:
     try:
         service = build("calendar", "v3", credentials=creds)
-
-        created_calendar = service.calendars().insert(body="calendar").execute()
-
+        created_calendar = service.calendars().insert(body={"summary": calendar_name}).execute()
         return created_calendar
-
     except HttpError as error:
         print(f"An error occurred:\n{error}")
+        return None
 
 
 def update_events(creds, calendar_id, game_list, time_zone):

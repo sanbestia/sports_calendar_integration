@@ -2,9 +2,46 @@ import datetime
 import pytest
 from unittest.mock import patch, MagicMock
 from objects.Match import Match
-from functions.calendar_methods import update_events
+from functions.calendar_methods import update_events, new_calendar
+
 
 START_TIME = datetime.datetime(2025, 6, 15, 14, 0, 0, tzinfo=datetime.timezone.utc)
+
+
+def test_new_calendar_returns_created_calendar():
+    """Returns the created calendar dict on success."""
+    fake_calendar = {"id": "new_calendar_id", "summary": "My Sports Calendar"}
+
+    with patch("functions.calendar_methods.build") as mock_build:
+        mock_service = MagicMock()
+        mock_service.calendars().insert().execute.return_value = fake_calendar
+        mock_build.return_value = mock_service
+
+        result = new_calendar(creds=MagicMock(), calendar_name="My Sports Calendar")
+
+    assert result == fake_calendar
+    assert result["summary"] == "My Sports Calendar"
+
+
+def test_new_calendar_returns_none_on_http_error():
+    """Returns None when an HttpError occurs."""
+    from googleapiclient.errors import HttpError
+    from unittest.mock import MagicMock
+    import httplib2
+
+    with patch("functions.calendar_methods.build") as mock_build:
+        mock_service = MagicMock()
+        mock_service.calendars().insert().execute.side_effect = HttpError(
+            resp=MagicMock(status=403),
+            content=b"Forbidden"
+        )
+        mock_build.return_value = mock_service
+
+        result = new_calendar(creds=MagicMock(), calendar_name="My Sports Calendar")
+
+    assert result is None
+
+
 
 
 def make_match(game_id="123", side_one="Team A", side_two="Team B", start_time=START_TIME):
