@@ -27,7 +27,11 @@ def get_ids() -> dict[str, dict[str, str]]:
 
         print(f"Looking for players/teams...\n")
 
-        request: requests.Response = requests.get(url, headers=headers)
+        try:
+            request: requests.Response = requests.get(url, headers=headers)
+        except (TimeoutError, ConnectionError) as e:
+            print(f"Couldn't communicate with sports API\n{e}")
+            continue
 
         if not request.text:
             print(f"No player/team found with that name")
