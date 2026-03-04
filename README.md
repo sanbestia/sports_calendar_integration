@@ -105,7 +105,7 @@ uv run pytest -v
 
 ---
 
-### Contributing
+## Contributing
 
 Contributions are welcome! If you'd like to add support for a new sport, improve the calendar logic, or fix a bug:
 
@@ -117,7 +117,7 @@ Contributions are welcome! If you'd like to add support for a new sport, improve
 Please make sure any new functionality is covered by tests.
 
 
-## To do list:
+### To do list:
 - [x] Allow multiple teams in one run
 - [ ] Install dependencies automatically
 - [ ] Make the credential creation process easier
