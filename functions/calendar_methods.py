@@ -43,7 +43,11 @@ def update_events(creds, calendar_id, game_list, time_zone):
     for game in game_list:
         should_create_new = True
         for event in event_list["items"]:
-            side_one, side_two, event_start_time, event_game_id, last_updated = event["description"].split("\n")
+            try:
+                side_one, side_two, event_start_time, event_game_id, last_updated = event["description"].split("\n")
+            except (ValueError, KeyError):
+                logger.warning(f"Skipping event '{event.get('summary', 'unknown')}' — unexpected description format")
+                continue
             if event_game_id == game.game_id:
                 should_create_new = False
                 if event_start_time != str(game.start_time)[:-6] or game.side_one != side_one or game.side_two != side_two:

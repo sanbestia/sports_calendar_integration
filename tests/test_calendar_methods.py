@@ -81,6 +81,30 @@ def make_mock_service(existing_events: list) -> MagicMock:
 
 # --- Tests ---
 
+def test_skips_malformed_event_description():
+    """Does not crash when an existing event has a malformed description."""
+    match = make_match(game_id="999")
+    malformed_event = {
+        "id": "google_event_id_xyz",
+        "summary": "Some manually edited event",
+        "description": "This description\ndoes not have five fields"
+    }
+
+    with patch("functions.calendar_methods.build") as mock_build:
+        mock_service = make_mock_service(existing_events=[malformed_event])
+        mock_build.return_value = mock_service
+
+        # Should not raise, and should create a new event since no valid match was found
+        update_events(
+            creds=MagicMock(),
+            calendar_id="fake_calendar_id",
+            game_list=[match],
+            time_zone="UTC"
+        )
+
+    mock_service.events().insert.assert_called_once()
+
+
 def test_creates_new_event_when_no_existing():
     """Creates a new event when the game doesn't exist in the calendar yet."""
     match = make_match(game_id="999")
@@ -179,3 +203,5 @@ def test_handles_multiple_matches():
         )
 
     assert mock_service.events().insert.call_count == 2
+    
+    
