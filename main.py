@@ -15,10 +15,9 @@ import sys
 #
 # for package in packages_to_install:
 #     subprocess.check_call([sys.executable, '-m', 'pip', 'install', package])
-
-
 import os
 import json
+import logging
 import argparse
 import datetime
 from dotenv import load_dotenv
@@ -29,9 +28,18 @@ from functions.calendar_methods import update_events
 from functions.get_next_matches import get_next_matches
 from functions.get_ids import get_ids
 from functions.time_keeper import wait
+from objects.API_Call_Tracker import APICallTracker
 from config import REFRESH_HOURS
 
 load_dotenv()
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(message)s"
+)
+logging.getLogger("googleapiclient.discovery_cache").setLevel(logging.ERROR)
+logger = logging.getLogger(__name__)
+
 
 
 def load_queries(filepath: str) -> dict:
@@ -49,12 +57,12 @@ def load_queries(filepath: str) -> dict:
     return raw
 
 
-def build_queries_from_get_ids() -> dict:
+def build_queries_from_get_ids(tracker=None) -> dict:
     """Interactively build queries using get_ids(), prompting for calendar IDs."""
-    id_dict = get_ids()
+    id_dict = get_ids(tracker=tracker)
     queries = {}
     for team_id, data in id_dict.items():
-        calendar_id = input(f"Enter calendar id {data['name']}:")
+        calendar_id = input(f"Enter calendar id for {data['name']}: ")
         queries[data["name"]] = {
             "id": team_id,
             "sport": data["sport"],
@@ -76,15 +84,14 @@ def main() -> None:
 
     tz = get_localzone()
     creds = check_calendar_tokens()
+    tracker = APICallTracker()
 
     if args.queries:
         queries = load_queries(args.queries)
     else:
-        queries = build_queries_from_get_ids()
+        queries = build_queries_from_get_ids(tracker=tracker)
 
     refresh_rate = REFRESH_HOURS * 60
-
-    print()
 
     while True:
         for name, data_dict in queries.items():
@@ -93,7 +100,8 @@ def main() -> None:
                 team_name=name,
                 sport=data_dict["sport"],
                 player_type=data_dict["player_type"],
-                time_zone=str(tz)
+                time_zone=str(tz),
+                tracker=tracker
             )
             if data:
                 update_events(
@@ -102,15 +110,14 @@ def main() -> None:
                     game_list=data,
                     time_zone=str(tz)
                 )
-            print("--------------------------------------------------\n")
+            logger.info("--------------------------------------------------\n")
 
         now = datetime.datetime.now(tz=tz)
         deadline = now + datetime.timedelta(minutes=refresh_rate)
-        print(f"{now.hour:02}:{now.minute:02} - "
-              f"Next update in {refresh_rate} minute{'' if refresh_rate == 1 else 's'}"
-              f" (@ {deadline.hour:02}:{deadline.minute:02})")
+        logger.info(tracker.status())
+        logger.info(f"Next update in {refresh_rate} minute{'' if refresh_rate == 1 else 's'} "
+                    f"(@ {deadline.hour:02}:{deadline.minute:02})")
         wait(deadline, tz)
-        print("\n-----------------------------------------------------------------------------\n\n\n")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,9 @@
+import logging
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from datetime import datetime, timedelta
+
+logger = logging.getLogger(__name__)
 
 
 ICONS: dict[str, str] = {
@@ -29,10 +32,10 @@ def new_calendar(creds, calendar_name: str) -> dict | None:
 
 
 def update_events(creds, calendar_id, game_list, time_zone):
-    print("* Updating calendar...\n")
+    logger.info("* Updating calendar...\n")
     service = build("calendar", "v3", credentials=creds)
 
-    print("Looking up future events...")
+    logger.info("Looking up future events...\n")
     event_list = service.events().list(
         calendarId=calendar_id,
         timeMin=(datetime.now()-timedelta(hours=12)).astimezone().replace(microsecond=0).isoformat()).execute()

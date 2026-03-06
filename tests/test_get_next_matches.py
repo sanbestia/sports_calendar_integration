@@ -140,3 +140,15 @@ def test_no_round_info_uses_tournament_name():
         result = get_next_matches("206570", "Jannik Sinner", "player", "tennis", "UTC")
 
     assert result[0].stage == "ATP Ultra Finals, Mars"
+    
+    
+def test_returns_empty_list_on_empty_near_response():
+    """Returns empty list when 'near' endpoint returns an empty response."""
+    with patch("functions.get_next_matches.requests.get") as mock_get:
+        mock_get.side_effect = [
+            make_mock_empty_response(),  # 'next' endpoint empty
+            make_mock_empty_response()   # 'near' endpoint also empty
+        ]
+        result = get_next_matches("206570", "Jannik Sinner", "player", "tennis", "UTC")
+
+    assert result == []

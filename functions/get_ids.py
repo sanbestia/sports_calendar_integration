@@ -1,13 +1,16 @@
+import logging
+import os
 import requests
 import json
-import os
 from dotenv import load_dotenv
 
 load_dotenv()
 RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
 
+logger = logging.getLogger(__name__)
 
-def get_ids() -> dict[str, dict[str, str]]:
+
+def get_ids(tracker=None) -> dict[str, dict[str, str]]:
     id_dict: dict[str, dict[str, str]] = dict()
     while True:
         name: str = input(f"Enter player/team name: ")
@@ -19,33 +22,33 @@ def get_ids() -> dict[str, dict[str, str]]:
                f"{name.lower()}")
 
         headers: dict[str, str] = {
-            "X-RapidAPI-Key": "REPLACED_API_KEY",
+            "X-RapidAPI-Key": RAPIDAPI_KEY,
             "X-RapidAPI-Host": "allsportsapi2.p.rapidapi.com"
         }
 
-        # THIS SHOULD BE UNDER A TRY STATEMENT
-
-        print(f"Looking for players/teams...\n")
+        logger.info("Looking for players/teams...")
 
         try:
             request: requests.Response = requests.get(url, headers=headers)
+            if tracker:
+                tracker.increment()
         except (TimeoutError, ConnectionError) as e:
-            print(f"Couldn't communicate with sports API\n{e}")
+            logger.error(f"Couldn't communicate with sports API: {e}")
             continue
 
         if not request.text:
-            print(f"No player/team found with that name")
+            logger.info("No player/team found with that name, try again")
             continue
 
         hits: list[filter] = list(filter(lambda result: result['type'] == 'team', json.loads(request.text)['results']))
         chosen: int = 0
 
         if len(hits) > 1:
-            print("Multiple hits satisfy the query:")
+            logger.info("Multiple hits found:")
             for order, hit in enumerate(hits):
                 team_name: str = " ".join(x.capitalize() for x in hit["entity"]["slug"].split("-"))
                 team_gender: str = hit["entity"].get("gender")
-                print(f'{order + 1}: {team_name} {"(" + team_gender + ")" if team_gender else ""}')
+                logger.info(f'  {order + 1}: {team_name} {"(" + team_gender + ")" if team_gender else ""}')
             chosen = int(input("Type the number associated to the correct option: ")) - 1
 
         print()
@@ -56,10 +59,9 @@ def get_ids() -> dict[str, dict[str, str]]:
                 "sport": sport
             }
         else:
-            print("Choice deleted.")
+            logger.info("Choice discarded")
 
         if input(f'Search for another player/team? Y/N: ').upper() == "N":
-            print()
             return id_dict
 
         print()
