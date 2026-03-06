@@ -119,6 +119,7 @@ Please make sure any new functionality is covered by tests.
 
 ### To do list:
 - [x] Allow multiple teams in one run
+- [ ] Add request counter per day, to know how many api calls are left
 - [ ] Install dependencies automatically
 - [ ] Make the credential creation process easier
 - [ ] Restrict input possibilities
