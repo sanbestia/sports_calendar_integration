@@ -53,7 +53,11 @@ def test_increment_saves_to_file():
          patch("builtins.open", mock_open()) as mock_file:
         tracker = APICallTracker()
         tracker.increment()
+
     mock_file.assert_called_with(LOG_FILE, "w")
+    written = "".join(call.args[0] for call in mock_file().write.call_args_list)
+    assert '"count"' in written
+    assert '"date"' in written
 
 
 def test_status_returns_correct_string():
@@ -77,7 +81,7 @@ def test_daily_limit_comes_from_config():
 def test_resets_on_new_day():
     """Resets count automatically when the date changes."""
     with patch("objects.API_Call_Tracker.os.path.exists", return_value=False), \
-         patch("builtins.open", mock_open()):
+         patch("builtins.open", mock_open()) as mock_file:
         tracker = APICallTracker()
         tracker.increment()
         tracker.increment()
@@ -88,7 +92,11 @@ def test_resets_on_new_day():
             tracker.increment()
 
     assert tracker.count == 1
-
+    mock_file.assert_called_with(LOG_FILE, "w")
+    written = "".join(call.args[0] for call in mock_file().write.call_args_list)
+    assert '"count"' in written
+    assert '"date"' in written
+    
 
 def test_handles_corrupted_log_file():
     """Starts from 0 gracefully when log file is corrupted."""
