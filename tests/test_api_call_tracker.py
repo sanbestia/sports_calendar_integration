@@ -111,3 +111,44 @@ def test_status_triggers_reset_on_new_day():
             status = tracker.status()
 
     assert status == f"API calls today: 0/{tracker.daily_limit}"
+    
+    
+def test_is_limit_reached_returns_false_when_under_limit():
+    """Returns False when count is below the daily limit."""
+    with patch("objects.API_Call_Tracker.os.path.exists", return_value=False), \
+         patch("builtins.open", mock_open()):
+        tracker = APICallTracker()
+        tracker.increment()
+    assert tracker.is_limit_reached() is False
+
+
+def test_is_limit_reached_returns_true_when_at_limit():
+    """Returns True when count equals the daily limit."""
+    with patch("objects.API_Call_Tracker.os.path.exists", return_value=False), \
+         patch("builtins.open", mock_open()):
+        tracker = APICallTracker()
+        tracker.count = tracker.daily_limit
+    assert tracker.is_limit_reached() is True
+
+
+def test_is_limit_reached_returns_true_when_over_limit():
+    """Returns True when count exceeds the daily limit."""
+    with patch("objects.API_Call_Tracker.os.path.exists", return_value=False), \
+         patch("builtins.open", mock_open()):
+        tracker = APICallTracker()
+        tracker.count = tracker.daily_limit + 1
+    assert tracker.is_limit_reached() is True
+
+
+def test_is_limit_reached_resets_on_new_day():
+    """Returns False after a day reset even if count was at the limit."""
+    with patch("objects.API_Call_Tracker.os.path.exists", return_value=False), \
+         patch("builtins.open", mock_open()):
+        tracker = APICallTracker()
+        tracker.count = tracker.daily_limit
+
+        with patch("objects.API_Call_Tracker.date") as mock_date:
+            mock_date.today.return_value = date(2099, 1, 1)
+            result = tracker.is_limit_reached()
+
+    assert result is False

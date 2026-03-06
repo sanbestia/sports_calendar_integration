@@ -80,6 +80,13 @@ def main() -> None:
     while True:
         for name, data_dict in queries.items():
 
+            if api_tracker.is_limit_reached():
+                logger.warning(
+                    f"Daily API limit of {api_tracker.daily_limit} calls reached — "
+                    f"skipping remaining fetches until tomorrow"
+                    )
+                break
+
             if not fetch_tracker.should_fetch(name):
                 continue
 

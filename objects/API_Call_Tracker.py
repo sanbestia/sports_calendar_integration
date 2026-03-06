@@ -53,6 +53,12 @@ class APICallTracker:
         self._check_reset()
         self.count += 1
         self._save()
+            
+    
+    def is_limit_reached(self) -> bool:
+        """Return True if the daily API call limit has been reached."""
+        self._check_reset()
+        return self.count >= self.daily_limit
 
 
     def status(self) -> str:
