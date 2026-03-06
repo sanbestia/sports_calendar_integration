@@ -14,6 +14,9 @@ credentials.json
 token.json
 .env
 
+# Generated files
+api_call_log.json 
+
 # Personal queries
 queries.json
 
