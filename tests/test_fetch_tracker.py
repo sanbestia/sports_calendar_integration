@@ -3,6 +3,7 @@ import pytest
 from datetime import datetime, timezone, timedelta
 from unittest.mock import patch, mock_open, MagicMock
 from objects.Fetch_Tracker import FetchTracker, FETCH_LOG_FILE
+from config import FETCH_THRESHOLDS
 
 
 # --- Helpers ---
@@ -57,8 +58,13 @@ def test_should_fetch_returns_true_when_no_entry():
 
 
 def test_should_fetch_returns_false_when_recently_fetched_far_match():
-    """Returns False when fetched 1h ago and next match is >7 days away (threshold: 24h)."""
-    fake_log = {"Carlos Alcaraz": make_entry(hours_ago=1, days_until_match=10)}
+    f"""Returns False when fetched {FETCH_THRESHOLDS["far"]["recheck_hours"] - 0.1}h ago 
+    and next match is >{FETCH_THRESHOLDS["far"]["days"]}
+    days away (threshold: {FETCH_THRESHOLDS["far"]["recheck_hours"]}h)."""
+    fake_log = {"Carlos Alcaraz": make_entry(
+        hours_ago=FETCH_THRESHOLDS["far"]["recheck_hours"] - 0.1, 
+        days_until_match=FETCH_THRESHOLDS["far"]["days"] + 0.1
+        )}
     with patch("objects.Fetch_Tracker.os.path.exists", return_value=True), \
          patch("builtins.open", mock_open(read_data=make_log(fake_log))):
         tracker = FetchTracker()
@@ -66,8 +72,13 @@ def test_should_fetch_returns_false_when_recently_fetched_far_match():
 
 
 def test_should_fetch_returns_true_when_threshold_exceeded_far_match():
-    """Returns True when fetched 25h ago and next match is >7 days away (threshold: 24h)."""
-    fake_log = {"Carlos Alcaraz": make_entry(hours_ago=25, days_until_match=10)}
+    f"""Returns True when fetched {FETCH_THRESHOLDS["far"]["recheck_hours"] + 0.1}h ago 
+    and next match is >{FETCH_THRESHOLDS["far"]["days"]}
+    days away (threshold: {FETCH_THRESHOLDS["far"]["recheck_hours"]}h)."""
+    fake_log = {"Carlos Alcaraz": make_entry(
+        hours_ago=FETCH_THRESHOLDS["far"]["recheck_hours"] + 0.1,
+        days_until_match=FETCH_THRESHOLDS["far"]["days"] + 0.1
+        )}
     with patch("objects.Fetch_Tracker.os.path.exists", return_value=True), \
          patch("builtins.open", mock_open(read_data=make_log(fake_log))):
         tracker = FetchTracker()
@@ -75,8 +86,13 @@ def test_should_fetch_returns_true_when_threshold_exceeded_far_match():
 
 
 def test_should_fetch_returns_false_when_recently_fetched_medium_match():
-    """Returns False when fetched 3h ago and next match is 2-7 days away (threshold: 6h)."""
-    fake_log = {"San Antonio Spurs": make_entry(hours_ago=3, days_until_match=4)}
+    f"""Returns False when fetched {FETCH_THRESHOLDS["medium"]["recheck_hours"] - 0.1}h ago 
+    and next match is >{FETCH_THRESHOLDS["medium"]["days"]}
+    days away (threshold: {FETCH_THRESHOLDS["medium"]["recheck_hours"]}h)."""
+    fake_log = {"San Antonio Spurs": make_entry(
+        hours_ago=FETCH_THRESHOLDS["medium"]["recheck_hours"] - 0.1,
+        days_until_match=FETCH_THRESHOLDS["medium"]["days"] + 0.1
+        )}
     with patch("objects.Fetch_Tracker.os.path.exists", return_value=True), \
          patch("builtins.open", mock_open(read_data=make_log(fake_log))):
         tracker = FetchTracker()
@@ -84,8 +100,13 @@ def test_should_fetch_returns_false_when_recently_fetched_medium_match():
 
 
 def test_should_fetch_returns_true_when_threshold_exceeded_medium_match():
-    """Returns True when fetched 7h ago and next match is 2-7 days away (threshold: 6h)."""
-    fake_log = {"San Antonio Spurs": make_entry(hours_ago=7, days_until_match=4)}
+    f"""Returns True when fetched {FETCH_THRESHOLDS["medium"]["recheck_hours"] + 0.1}h ago 
+    and next match is >{FETCH_THRESHOLDS["medium"]["days"]}
+    days away (threshold: {FETCH_THRESHOLDS["medium"]["recheck_hours"]}h)."""
+    fake_log = {"San Antonio Spurs": make_entry(
+        hours_ago=FETCH_THRESHOLDS["medium"]["recheck_hours"] + 0.1, 
+        days_until_match=FETCH_THRESHOLDS["medium"]["days"] + 0.1
+        )}
     with patch("objects.Fetch_Tracker.os.path.exists", return_value=True), \
          patch("builtins.open", mock_open(read_data=make_log(fake_log))):
         tracker = FetchTracker()
@@ -93,8 +114,13 @@ def test_should_fetch_returns_true_when_threshold_exceeded_medium_match():
 
 
 def test_should_fetch_returns_false_when_recently_fetched_near_match():
-    """Returns False when fetched 1h ago and next match is <2 days away (threshold: 2h)."""
-    fake_log = {"T1": make_entry(hours_ago=1, days_until_match=0.5)}
+    f"""Returns False when fetched {FETCH_THRESHOLDS["near"]["recheck_hours"] - 0.1}h ago 
+    and next match is >{FETCH_THRESHOLDS["near"]["days"]}
+    days away (threshold: {FETCH_THRESHOLDS["near"]["recheck_hours"]}h)."""
+    fake_log = {"T1": make_entry(
+        hours_ago=FETCH_THRESHOLDS["near"]["recheck_hours"] - 0.1, 
+        days_until_match=FETCH_THRESHOLDS["near"]["days"] + 0.1
+        )}
     with patch("objects.Fetch_Tracker.os.path.exists", return_value=True), \
          patch("builtins.open", mock_open(read_data=make_log(fake_log))):
         tracker = FetchTracker()
@@ -102,8 +128,13 @@ def test_should_fetch_returns_false_when_recently_fetched_near_match():
 
 
 def test_should_fetch_returns_true_when_threshold_exceeded_near_match():
-    """Returns True when fetched 3h ago and next match is <2 days away (threshold: 2h)."""
-    fake_log = {"T1": make_entry(hours_ago=3, days_until_match=0.5)}
+    f"""Returns True when fetched {FETCH_THRESHOLDS["near"]["recheck_hours"] - 0.1}h ago 
+    and next match is >{FETCH_THRESHOLDS["near"]["days"]}
+    days away (threshold: {FETCH_THRESHOLDS["near"]["recheck_hours"]}h)."""
+    fake_log = {"T1": make_entry(
+        hours_ago=FETCH_THRESHOLDS["near"]["recheck_hours"] + 0.1, 
+        days_until_match=FETCH_THRESHOLDS["near"]["days"] + 0.1
+        )}
     with patch("objects.Fetch_Tracker.os.path.exists", return_value=True), \
          patch("builtins.open", mock_open(read_data=make_log(fake_log))):
         tracker = FetchTracker()
@@ -111,8 +142,12 @@ def test_should_fetch_returns_true_when_threshold_exceeded_near_match():
 
 
 def test_should_fetch_returns_false_when_recently_fetched_no_match():
-    """Returns False when fetched 1h ago and no next match is known (threshold: 24h)."""
-    fake_log = {"Indiana Fever": make_entry(hours_ago=1, days_until_match=None)}
+    f"""Returns False when fetched {FETCH_THRESHOLDS["unknown"]["recheck_hours"] - 0.1}h ago 
+    and no next match is known (threshold: {FETCH_THRESHOLDS["unknown"]["recheck_hours"]}h)."""
+    fake_log = {"Indiana Fever": make_entry(
+        hours_ago=FETCH_THRESHOLDS["unknown"]["recheck_hours"] - 0.1, 
+        days_until_match=None
+        )}
     with patch("objects.Fetch_Tracker.os.path.exists", return_value=True), \
          patch("builtins.open", mock_open(read_data=make_log(fake_log))):
         tracker = FetchTracker()
@@ -120,8 +155,12 @@ def test_should_fetch_returns_false_when_recently_fetched_no_match():
 
 
 def test_should_fetch_returns_true_when_threshold_exceeded_no_match():
-    """Returns True when fetched 25h ago and no next match is known (threshold: 24h)."""
-    fake_log = {"Indiana Fever": make_entry(hours_ago=25, days_until_match=None)}
+    f"""Returns True when fetched {FETCH_THRESHOLDS["unknown"]["recheck_hours"] + 0.1}h ago 
+    and no next match is known (threshold: {FETCH_THRESHOLDS["unknown"]["recheck_hours"]}h)."""
+    fake_log = {"Indiana Fever": make_entry(
+        hours_ago=FETCH_THRESHOLDS["unknown"]["recheck_hours"] + 0.1, 
+        days_until_match=None
+        )}
     with patch("objects.Fetch_Tracker.os.path.exists", return_value=True), \
          patch("builtins.open", mock_open(read_data=make_log(fake_log))):
         tracker = FetchTracker()

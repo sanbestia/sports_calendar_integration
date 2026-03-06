@@ -53,10 +53,19 @@ CALENDAR_ID_SPORT2=your_calendar_id_here
 
 To find your Google Calendar ID, go to Google Calendar → Settings → select a calendar → scroll down to "Integrate calendar".
 
-You can adjust the refresh interval in `config.py`:
+You can adjust the refresh interval and fetch thresholds in `config.py`. By default they are:
 ```python
-REFRESH_HOURS = 6  # how often the calendar is updated
+MAIN_LOOP_SLEEP_MINUTES = 5  # how often the main loop runs
+
+FETCH_THRESHOLDS = {
+    "far":     {"days": 7, "recheck_hours": 24},  # next match is more than 7 days away
+    "medium":  {"days": 2, "recheck_hours": 12},   # next match is 2–7 days away
+    "near":    {"days": 0, "recheck_hours": 6},   # next match is within 2 days
+    "unknown": {"recheck_hours": 2},             # no upcoming match found
+}
 ```
+
+Each team is re-fetched at different rates depending on how soon their next match is, so the program avoids unnecessary API calls when games are far away, but checks often if new matches are scheduled.
 
 ---
 
@@ -83,7 +92,7 @@ uv run python main.py --queries queries.json
         "sport": "football",
         "player_type": "team",
         "calendar": "CALENDAR_ID_FOOTBALL"
-    },
+    }
 }
 ```
 
@@ -119,14 +128,12 @@ Please make sure any new functionality is covered by tests.
 
 ### To do list:
 - [x] Allow multiple teams in one run
-- [ ] Add request counter per day, to know how many api calls are left
-- [ ] Install dependencies automatically
+- [x] Add request counter per day, to know how many api calls are left
 - [ ] Make the credential creation process easier
 - [ ] Restrict input possibilities
 - [ ] Create user interface?
 - [ ] Create webapp to host it?
-- [ ] Implement database keeping module
-- [ ] Add support for other games:
+- [ ] Implement database keeping module?
+- [ ] Add support for other games outside of the scope of AllSportsAPI:
     - [ ] Chess
     - [ ] AoEII
-
