@@ -52,7 +52,12 @@ def get_next_matches(team_id: str, team_name: str, player_type: str, sport: str,
             if not request.text:
                 logger.error(f"Empty response on page {page} for {team_name}")
                 return next_games
-            request_dict = json.loads(request.text)
+            try:
+                request_dict = json.loads(request.text)
+            except json.JSONDecodeError:
+                logger.error(f"Invalid JSON response on page {page} for {team_name}: {request.text[:200]}")
+                return next_games
+
 
             if "events" not in request_dict:
                 logger.error(f"Request error: 'events' key not found in response: {request_dict}")
@@ -80,6 +85,11 @@ def get_next_matches(team_id: str, team_name: str, player_type: str, sport: str,
 
         if not request.text:
             logger.error(f"Empty response from 'near' endpoint for {team_name}")
+            return []
+        try:
+            request_dict = json.loads(request.text)
+        except json.JSONDecodeError:
+            logger.error(f"Invalid JSON response from 'near' endpoint for {team_name}: {request.text[:200]}")
             return []
 
         request_dict = json.loads(request.text)

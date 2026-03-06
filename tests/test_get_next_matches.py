@@ -49,6 +49,12 @@ def make_mock_empty_response() -> MagicMock:
     return mock
 
 
+def make_mock_invalid_json_response() -> MagicMock:
+    mock = MagicMock()
+    mock.text = "<html>Internal Server Error</html>"
+    return mock
+
+
 # --- Tests ---
 
 def test_returns_list_of_matches():
@@ -148,6 +154,30 @@ def test_returns_empty_list_on_empty_near_response():
         mock_get.side_effect = [
             make_mock_empty_response(),  # 'next' endpoint empty
             make_mock_empty_response()   # 'near' endpoint also empty
+        ]
+        result = get_next_matches("206570", "Jannik Sinner", "player", "tennis", "UTC")
+
+    assert result == []
+    
+
+def test_returns_partial_results_on_invalid_json_in_pagination():
+    """Returns empty list when a paginated response contains invalid JSON."""
+    with patch("functions.get_next_matches.requests.get") as mock_get:
+        mock_get.side_effect = [
+            make_mock_response(FAKE_NEXT_RESPONSE_PAGE_1),
+            make_mock_invalid_json_response()
+        ]
+        result = get_next_matches("206570", "Jannik Sinner", "player", "tennis", "UTC")
+
+    assert result == []
+
+
+def test_returns_empty_list_on_invalid_json_from_near_endpoint():
+    """Returns empty list when 'near' endpoint returns invalid JSON."""
+    with patch("functions.get_next_matches.requests.get") as mock_get:
+        mock_get.side_effect = [
+            make_mock_empty_response(),
+            make_mock_invalid_json_response()
         ]
         result = get_next_matches("206570", "Jannik Sinner", "player", "tennis", "UTC")
 
