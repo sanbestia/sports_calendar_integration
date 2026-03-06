@@ -92,8 +92,6 @@ def get_next_matches(team_id: str, team_name: str, player_type: str, sport: str,
             logger.error(f"Invalid JSON response from 'near' endpoint for {team_name}: {request.text[:200]}")
             return []
 
-        request_dict = json.loads(request.text)
-
         if "nextEvent" not in request_dict:
             logger.error(f"Request error: 'nextEvent' key not found in response: {request_dict}")
             return []
