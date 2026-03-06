@@ -1,5 +1,1 @@
-import sys
-import os
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'objects'))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'functions'))
+# intentionally empty — pytest path config is in pyproject.toml
