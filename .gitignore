@@ -16,6 +16,7 @@ token.json
 
 # Generated files
 api_call_log.json 
+fetch_log.json
 
 # Personal queries
 queries.json
