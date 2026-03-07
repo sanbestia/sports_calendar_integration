@@ -11,6 +11,16 @@ import json
 logger = logging.getLogger(__name__)
 
 
+def _build_api_url(sport: str, player_type: str, team_id: str, endpoint: str, page: int | None = None) -> str:
+    """Build an AllSports API URL for the given sport, entity, and endpoint."""
+    sport_segment = f"{sport}/" if sport != "football" else ""
+    event_type = "events" if sport == "tennis" else "matches"
+    url = f"https://allsportsapi2.p.rapidapi.com/api/{sport_segment}{player_type}/{team_id}/{event_type}/{endpoint}"
+    if page is not None:
+        url += f"/{page}"
+    return url
+
+
 def get_next_matches(team_id: str, team_name: str, player_type: str, sport: str, time_zone: str, tracker=None) -> list[Match]:
     api_key = os.getenv("RAPIDAPI_KEY")
     if not api_key:
@@ -30,13 +40,7 @@ def get_next_matches(team_id: str, team_name: str, player_type: str, sport: str,
     read_next_page: bool = True
     page: int = 0
     while read_next_page:
-        url = (f"https://allsportsapi2.p.rapidapi.com/api/"
-               f"{sport + '/' if sport != 'football' else ''}"
-               f"{player_type}/"
-               f"{team_id}/"
-               f"{'events' if sport == 'tennis' else 'matches'}/"
-               f"next/"
-               f"{page}")
+        url = _build_api_url(sport, player_type, team_id, "next", page)
 
         try:
             request = requests.get(url, headers=headers)
@@ -68,12 +72,7 @@ def get_next_matches(team_id: str, team_name: str, player_type: str, sport: str,
             page += 1
 
     if not events:
-        url = (f"https://allsportsapi2.p.rapidapi.com/api/"
-               f"{sport + '/' if sport != 'football' else ''}"
-               f"{player_type}/"
-               f"{team_id}/"
-               f"{'events' if sport == 'tennis' else 'matches'}/"
-               f"near")
+        url = _build_api_url(sport, player_type, team_id, "near")
 
         try:
             request = requests.get(url, headers=headers)

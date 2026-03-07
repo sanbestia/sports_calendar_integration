@@ -72,7 +72,7 @@ def make_existing_event(game_id="123", side_one="Team A", side_two="Team B", sta
 def make_mock_service(existing_events: list) -> MagicMock:
     """Helper to create a fake Google Calendar service."""
     mock_service = MagicMock()
-    mock_service.events().list().execute.return_value = {"items": existing_events}
+    mock_service.events().list().execute.return_value = {"items": existing_events}  # no nextPageToken — single page
     mock_service.events().get().execute.return_value = existing_events[0] if existing_events else {}
     return mock_service
 

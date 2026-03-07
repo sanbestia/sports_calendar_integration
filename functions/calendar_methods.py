@@ -59,14 +59,23 @@ def update_events(creds, calendar_id, game_list, time_zone):
     service = build("calendar", "v3", credentials=creds)
 
     logger.info("Looking up future events...")
-    event_list = service.events().list(
-        calendarId=calendar_id,
-        timeMin=(datetime.now()-timedelta(hours=12)).astimezone().replace(microsecond=0).isoformat()
-    ).execute()
+    time_min = (datetime.now()-timedelta(hours=12)).astimezone().replace(microsecond=0).isoformat()
+    existing_events = []
+    response = service.events().list(calendarId=calendar_id, timeMin=time_min).execute()
+    while True:
+        existing_events.extend(response.get("items", []))
+        next_page_token = response.get("nextPageToken")
+        if not next_page_token:
+            break
+        response = service.events().list(
+            calendarId=calendar_id,
+            timeMin=time_min,
+            pageToken=next_page_token
+        ).execute()
 
     for game in game_list:
         should_create_new = True
-        for event in event_list["items"]:
+        for event in existing_events:
             props = event.get("extendedProperties", {}).get("private", {})
             event_game_id = props.get("game_id")
 

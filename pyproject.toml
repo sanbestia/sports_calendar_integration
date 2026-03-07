@@ -1,7 +1,7 @@
 [project]
 name = "sports-calendar-integration"
 version = "0.1.0"
-description = ""A Python tool that automatically syncs upcoming sports matches to your Google Calendar"
+description = "A Python tool that automatically syncs upcoming sports matches to your Google Calendar"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -12,6 +12,10 @@ dependencies = [
     "requests>=2.32.5",
     "tzlocal>=5.3.1",
     "python-dotenv>=1.0.0",
+]
+
+[dependency-groups]
+dev = [
     "pytest>=8.0.0",
 ]
 
