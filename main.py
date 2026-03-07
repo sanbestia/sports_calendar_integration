@@ -112,14 +112,17 @@ def main() -> None:
 
             logger.info("--------------------------------------------------")
             logger.info("")
-
+        
         now = datetime.datetime.now(tz=tz)
         deadline = now + datetime.timedelta(minutes=sleep_minutes)
+        logger.info("")
         logger.info(api_tracker.status())
         logger.info(
-            f"Next cycle in {sleep_minutes} minute{'' if sleep_minutes == 1 else 's'} "
+            f"Next cycle in {sleep_minutes} minute{'' if sleep_minutes == 1 else 's'} "\
             f"(@ {deadline.hour:02}:{deadline.minute:02})"
         )
+        logger.info("-------------------------------------------------------------------------------")
+        logger.info("")
         wait(deadline, tz)
 
 
