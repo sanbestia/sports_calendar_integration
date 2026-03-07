@@ -124,16 +124,3 @@ Contributions are welcome! If you'd like to add support for a new sport, improve
 4. Submit a pull request
 
 Please make sure any new functionality is covered by tests.
-
-
-### To do list:
-- [x] Allow multiple teams in one run
-- [x] Add request counter per day, to know how many api calls are left
-- [ ] Make the credential creation process easier
-- [ ] Restrict input possibilities
-- [ ] Create user interface?
-- [ ] Create webapp to host it?
-- [ ] Implement database keeping module?
-- [ ] Add support for other games outside of the scope of AllSportsAPI:
-    - [ ] Chess
-    - [ ] AoEII
