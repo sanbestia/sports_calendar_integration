@@ -36,7 +36,23 @@ A Python tool that automatically syncs upcoming sports matches to your Google Ca
 
 3. Set up your environment variables (see [Configuration](#configuration))
 
-4. Add your Google Calendar API credentials file (`credentials.json`) to the root directory. You can download it from the [Google Cloud Console](https://console.cloud.google.com/) after enabling the Calendar API.
+4. Set up your Google Calendar API credentials (see [Google Calendar API Setup](#google-calendar-api-setup))
+
+---
+
+## Google Calendar API Setup
+
+1. Go to the [Google Cloud Console](https://console.cloud.google.com/) and create a new project.
+
+2. Navigate to **APIs & Services → Library**, search for "Google Calendar API", and enable it.
+
+3. Go to **APIs & Services → OAuth consent screen**. Choose **External**, fill in the app name and your email, and save. You don't need to publish the app — leaving it in testing mode is fine for personal use.
+
+4. Go to **APIs & Services → Credentials → Create Credentials → OAuth client ID**. Choose **Desktop app**, give it a name, and download the resulting file. Rename it to `credentials.json` and place it in the root directory of the project.
+
+5. On your first run, a browser window will open asking you to authorise the app with your Google account. After you confirm, a `token.json` file will be created automatically and reused in future runs.
+
+> **Note:** If you see a "Google hasn't verified this app" warning, click **Advanced → Go to (app name)** to proceed. This appears because the app is in testing mode and is expected behaviour.
 
 ---
 
