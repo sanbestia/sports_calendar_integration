@@ -110,7 +110,8 @@ def main() -> None:
                     time_zone=str(tz)
                 )
 
-            logger.info("--------------------------------------------------\n")
+            logger.info("--------------------------------------------------")
+            logger.info("")
 
         now = datetime.datetime.now(tz=tz)
         deadline = now + datetime.timedelta(minutes=sleep_minutes)

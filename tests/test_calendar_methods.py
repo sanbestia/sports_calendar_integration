@@ -26,8 +26,6 @@ def test_new_calendar_returns_created_calendar():
 def test_new_calendar_returns_none_on_http_error():
     """Returns None when an HttpError occurs."""
     from googleapiclient.errors import HttpError
-    from unittest.mock import MagicMock
-    import httplib2
 
     with patch("functions.calendar_methods.build") as mock_build:
         mock_service = MagicMock()
@@ -40,8 +38,6 @@ def test_new_calendar_returns_none_on_http_error():
         result = new_calendar(creds=MagicMock(), calendar_name="My Sports Calendar")
 
     assert result is None
-
-
 
 
 def make_match(game_id="123", side_one="Team A", side_two="Team B", start_time=START_TIME):
@@ -57,17 +53,19 @@ def make_match(game_id="123", side_one="Team A", side_two="Team B", start_time=S
 
 
 def make_existing_event(game_id="123", side_one="Team A", side_two="Team B", start_time=START_TIME):
-    """Helper to create a fake existing calendar event matching the real description format."""
+    """Helper to create a fake existing calendar event using extendedProperties."""
     return {
         "id": "google_event_id_abc",
         "summary": f"{side_one} vs {side_two} - Some League (Round 1)",
-        "description": (
-            f"{side_one}\n"
-            f"{side_two}\n"
-            f"{start_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
-            f"{game_id}\n"
-            f"Last changed at 2025-01-01 00:00:00"
-        )
+        "description": "Last updated: 2025-01-01 00:00:00",
+        "extendedProperties": {
+            "private": {
+                "game_id": str(game_id),
+                "side_one": side_one,
+                "side_two": side_two,
+                "start_time": start_time.strftime("%Y-%m-%d %H:%M:%S"),
+            }
+        }
     }
 
 
@@ -81,17 +79,16 @@ def make_mock_service(existing_events: list) -> MagicMock:
 
 # --- Tests ---
 
-def test_skips_malformed_event_description():
-    """Does not crash when an existing event has a malformed description."""
+def test_skips_event_missing_extended_properties():
+    """Does not crash when an existing event has no extendedProperties game_id."""
     match = make_match(game_id="999")
-    malformed_event = {
+    event_without_props = {
         "id": "google_event_id_xyz",
-        "summary": "Some manually edited event",
-        "description": "This description\ndoes not have five fields"
+        "summary": "Some manually created event",
     }
 
     with patch("functions.calendar_methods.build") as mock_build:
-        mock_service = make_mock_service(existing_events=[malformed_event])
+        mock_service = make_mock_service(existing_events=[event_without_props])
         mock_build.return_value = mock_service
 
         # Should not raise, and should create a new event since no valid match was found
@@ -203,5 +200,3 @@ def test_handles_multiple_matches():
         )
 
     assert mock_service.events().insert.call_count == 2
-    
-    

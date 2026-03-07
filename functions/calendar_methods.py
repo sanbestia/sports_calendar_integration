@@ -30,6 +30,30 @@ def new_calendar(creds, calendar_name: str) -> dict | None:
         return None
 
 
+def _build_event_body(game, time_zone: str) -> dict:
+    """Build a Google Calendar event body for a given match."""
+    return {
+        'summary': f'{ICONS[game.sport]} {game.side_one} vs {game.side_two} - {game.tournament} ({game.stage})',
+        'description': f'Last updated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}',
+        'start': {
+            'dateTime': game.start_time.isoformat(),
+            'timeZone': time_zone,
+        },
+        'end': {
+            'dateTime': game.expected_end_time.isoformat(),
+            'timeZone': time_zone,
+        },
+        'extendedProperties': {
+            'private': {
+                'game_id': str(game.game_id),
+                'side_one': game.side_one,
+                'side_two': game.side_two,
+                'start_time': game.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+            }
+        }
+    }
+
+
 def update_events(creds, calendar_id, game_list, time_zone):
     logger.info("Updating calendar...")
     service = build("calendar", "v3", credentials=creds)
@@ -43,34 +67,23 @@ def update_events(creds, calendar_id, game_list, time_zone):
     for game in game_list:
         should_create_new = True
         for event in event_list["items"]:
-            try:
-                side_one, side_two, event_start_time, event_game_id, last_updated = event["description"].split("\n")
-            except (ValueError, KeyError):
-                logger.warning(f"Skipping event '{event.get('summary', 'unknown')}' — unexpected description format")
+            props = event.get("extendedProperties", {}).get("private", {})
+            event_game_id = props.get("game_id")
+
+            if not event_game_id:
+                logger.warning(f"Skipping event '{event.get('summary', 'unknown')}' — no game_id in extendedProperties")
                 continue
 
-            if event_game_id == game.game_id:
+            if event_game_id == str(game.game_id):
                 should_create_new = False
-                if event_start_time != str(game.start_time)[:-6] or game.side_one != side_one or game.side_two != side_two:
+                if (
+                    props.get("start_time") != game.start_time.strftime("%Y-%m-%d %H:%M:%S")
+                    or props.get("side_one") != game.side_one
+                    or props.get("side_two") != game.side_two
+                ):
                     logger.info("Found change in event schedule. Updating...")
                     event_to_update = service.events().get(calendarId=calendar_id, eventId=event["id"]).execute()
-                    event_to_update['summary'] = \
-                        f'{ICONS[game.sport]} {game.side_one} vs {game.side_two} - {game.tournament} ({game.stage})'
-                    event_to_update['start'] = {
-                        'dateTime': game.start_time.isoformat(),
-                        'timeZone': time_zone,
-                    }
-                    event_to_update['end'] = {
-                        'dateTime': game.expected_end_time.isoformat(),
-                        'timeZone': time_zone,
-                    }
-                    event_to_update['description'] = (
-                        f'{game.side_one}\n'
-                        f'{game.side_two}\n'
-                        f'{game.start_time.strftime("%Y-%m-%d %H:%M:%S")}\n'
-                        f'{game.game_id}\n'
-                        f'Last changed at {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
-                    )
+                    event_to_update.update(_build_event_body(game, time_zone))
                     updated_event = service.events().update(
                         calendarId=calendar_id,
                         eventId=event['id'],
@@ -83,27 +96,11 @@ def update_events(creds, calendar_id, game_list, time_zone):
         if should_create_new:
             logger.info("New match upcoming! Creating event...")
             try:
-                event = {
-                    'summary': f'{ICONS[game.sport]} {game.side_one} vs {game.side_two} - {game.tournament} ({game.stage})',
-                    'start': {
-                        'dateTime': game.start_time.isoformat(),
-                        'timeZone': time_zone,
-                    },
-                    'end': {
-                        'dateTime': game.expected_end_time.isoformat(),
-                        'timeZone': time_zone,
-                    },
-                    'description': (
-                        f'{game.side_one}\n'
-                        f'{game.side_two}\n'
-                        f'{game.start_time.strftime("%Y-%m-%d %H:%M:%S")}\n'
-                        f'{game.game_id}\n'
-                        f'Last changed at {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}'
-                    )
-                }
-                event = service.events().insert(calendarId=calendar_id, body=event).execute()
-                logger.info(f'Event created: {event.get("summary")} — {event.get("htmlLink")}')
-
+                created_event = service.events().insert(
+                    calendarId=calendar_id,
+                    body=_build_event_body(game, time_zone)
+                ).execute()
+                logger.info(f'Event created: {created_event.get("summary")} — {created_event.get("htmlLink")}')
             except HttpError as error:
                 logger.error(f"An error occurred: {error}")
 

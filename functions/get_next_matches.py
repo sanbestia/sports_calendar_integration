@@ -3,23 +3,24 @@ import os
 from datetime import datetime, timezone
 
 import pytz
-from dotenv import load_dotenv
 
 from objects.Match import Match
 import requests
 import json
 
-load_dotenv()
-RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
-
 logger = logging.getLogger(__name__)
 
 
 def get_next_matches(team_id: str, team_name: str, player_type: str, sport: str, time_zone: str, tracker=None) -> list[Match]:
-    logger.info(f"Looking for games featuring {team_name}...\n")
+    api_key = os.getenv("RAPIDAPI_KEY")
+    if not api_key:
+        raise ValueError("RAPIDAPI_KEY environment variable is not set")
+
+    logger.info(f"Looking for games featuring {team_name}...")
+    logger.info("")
 
     headers: dict[str, str] = {
-        "X-RapidAPI-Key": RAPIDAPI_KEY,
+        "X-RapidAPI-Key": api_key,
         "X-RapidAPI-Host": "allsportsapi2.p.rapidapi.com"
     }
 
@@ -57,7 +58,6 @@ def get_next_matches(team_id: str, team_name: str, player_type: str, sport: str,
             except json.JSONDecodeError:
                 logger.error(f"Invalid JSON response on page {page} for {team_name}: {request.text[:200]}")
                 return next_games
-
 
             if "events" not in request_dict:
                 logger.error(f"Request error: 'events' key not found in response: {request_dict}")
@@ -102,7 +102,8 @@ def get_next_matches(team_id: str, team_name: str, player_type: str, sport: str,
 
         events.append(request_dict["nextEvent"])
 
-    logger.info("Got data:\n")
+    logger.info("Got data:")
+    logger.info("")
     for event in events:
         date_time = datetime.fromtimestamp(event['startTimestamp'], tz=timezone.utc)
         date_time = date_time.astimezone(pytz.timezone(time_zone))
@@ -122,6 +123,6 @@ def get_next_matches(team_id: str, team_name: str, player_type: str, sport: str,
         logger.info(f"{game} ({time_zone})")
         next_games.append(game)
 
-    logger.info("")  
-    
+    logger.info("")
+
     return next_games
