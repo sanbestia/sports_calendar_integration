@@ -101,7 +101,7 @@ uv run python -m functions.get_ids
 
 You will be prompted to enter a name and sport, shown a list of matches to choose from, and asked to confirm your selection. At the end, the script prints a summary of all selected entries with their IDs. API calls made during the search are tracked against your daily limit.
 
-### With a predefined query file
+### Running the script with a predefined query file
 
 Once you have your IDs, create a `queries.json` file in the root directory and run:
 ```bash
@@ -128,7 +128,7 @@ uv run python main.py --queries queries.json
 
 The `calendar` field should match one of the key names defined in your `.env` file. The `player_type` field should be `"player"` for individuals or `"team"` for organizations.
 
-### Interactive mode
+### Running the script in interactive mode
 
 Run without arguments to search for teams and players interactively, without needing a `queries.json` file:
 ```bash
