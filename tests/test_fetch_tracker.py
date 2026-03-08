@@ -59,11 +59,9 @@ def test_should_fetch_returns_true_when_no_entry():
 
 
 def test_should_fetch_returns_false_when_recently_fetched_far_match():
-    f"""Returns False when fetched {FETCH_THRESHOLDS["far"]["recheck_hours"] - 0.1}h ago 
-    and next match is >{FETCH_THRESHOLDS["far"]["days"]}
-    days away (threshold: {FETCH_THRESHOLDS["far"]["recheck_hours"]}h)."""
+    """Returns False when fetched less than the far recheck interval ago and next match is beyond the far threshold."""
     fake_log = {"Carlos Alcaraz": make_entry(
-        hours_ago=FETCH_THRESHOLDS["far"]["recheck_hours"] - 0.1, 
+        hours_ago=FETCH_THRESHOLDS["far"]["recheck_hours"] - 0.1,
         days_until_match=FETCH_THRESHOLDS["far"]["days"] + 0.1
         )}
     with patch("objects.Fetch_Tracker.os.path.exists", return_value=True), \
@@ -73,9 +71,7 @@ def test_should_fetch_returns_false_when_recently_fetched_far_match():
 
 
 def test_should_fetch_returns_true_when_threshold_exceeded_far_match():
-    f"""Returns True when fetched {FETCH_THRESHOLDS["far"]["recheck_hours"] + 0.1}h ago 
-    and next match is >{FETCH_THRESHOLDS["far"]["days"]}
-    days away (threshold: {FETCH_THRESHOLDS["far"]["recheck_hours"]}h)."""
+    """Returns True when fetched more than the far recheck interval ago and next match is beyond the far threshold."""
     fake_log = {"Carlos Alcaraz": make_entry(
         hours_ago=FETCH_THRESHOLDS["far"]["recheck_hours"] + 0.1,
         days_until_match=FETCH_THRESHOLDS["far"]["days"] + 0.1
@@ -87,9 +83,7 @@ def test_should_fetch_returns_true_when_threshold_exceeded_far_match():
 
 
 def test_should_fetch_returns_false_when_recently_fetched_medium_match():
-    f"""Returns False when fetched {FETCH_THRESHOLDS["medium"]["recheck_hours"] - 0.1}h ago 
-    and next match is >{FETCH_THRESHOLDS["medium"]["days"]}
-    days away (threshold: {FETCH_THRESHOLDS["medium"]["recheck_hours"]}h)."""
+    """Returns False when fetched less than the medium recheck interval ago and next match is within the medium threshold."""
     fake_log = {"San Antonio Spurs": make_entry(
         hours_ago=FETCH_THRESHOLDS["medium"]["recheck_hours"] - 0.1,
         days_until_match=FETCH_THRESHOLDS["medium"]["days"] + 0.1
@@ -101,11 +95,9 @@ def test_should_fetch_returns_false_when_recently_fetched_medium_match():
 
 
 def test_should_fetch_returns_true_when_threshold_exceeded_medium_match():
-    f"""Returns True when fetched {FETCH_THRESHOLDS["medium"]["recheck_hours"] + 0.1}h ago 
-    and next match is >{FETCH_THRESHOLDS["medium"]["days"]}
-    days away (threshold: {FETCH_THRESHOLDS["medium"]["recheck_hours"]}h)."""
+    """Returns True when fetched more than the medium recheck interval ago and next match is within the medium threshold."""
     fake_log = {"San Antonio Spurs": make_entry(
-        hours_ago=FETCH_THRESHOLDS["medium"]["recheck_hours"] + 0.1, 
+        hours_ago=FETCH_THRESHOLDS["medium"]["recheck_hours"] + 0.1,
         days_until_match=FETCH_THRESHOLDS["medium"]["days"] + 0.1
         )}
     with patch("objects.Fetch_Tracker.os.path.exists", return_value=True), \
@@ -115,11 +107,9 @@ def test_should_fetch_returns_true_when_threshold_exceeded_medium_match():
 
 
 def test_should_fetch_returns_false_when_recently_fetched_near_match():
-    f"""Returns False when fetched {FETCH_THRESHOLDS["near"]["recheck_hours"] - 0.1}h ago 
-    and next match is >{FETCH_THRESHOLDS["near"]["days"]}
-    days away (threshold: {FETCH_THRESHOLDS["near"]["recheck_hours"]}h)."""
+    """Returns False when fetched less than the near recheck interval ago and next match is within the near threshold."""
     fake_log = {"T1": make_entry(
-        hours_ago=FETCH_THRESHOLDS["near"]["recheck_hours"] - 0.1, 
+        hours_ago=FETCH_THRESHOLDS["near"]["recheck_hours"] - 0.1,
         days_until_match=FETCH_THRESHOLDS["near"]["days"] + 0.1
         )}
     with patch("objects.Fetch_Tracker.os.path.exists", return_value=True), \
@@ -129,11 +119,9 @@ def test_should_fetch_returns_false_when_recently_fetched_near_match():
 
 
 def test_should_fetch_returns_true_when_threshold_exceeded_near_match():
-    f"""Returns True when fetched {FETCH_THRESHOLDS["near"]["recheck_hours"] - 0.1}h ago 
-    and next match is >{FETCH_THRESHOLDS["near"]["days"]}
-    days away (threshold: {FETCH_THRESHOLDS["near"]["recheck_hours"]}h)."""
+    """Returns True when fetched more than the near recheck interval ago and next match is within the near threshold."""
     fake_log = {"T1": make_entry(
-        hours_ago=FETCH_THRESHOLDS["near"]["recheck_hours"] + 0.1, 
+        hours_ago=FETCH_THRESHOLDS["near"]["recheck_hours"] + 0.1,
         days_until_match=FETCH_THRESHOLDS["near"]["days"] + 0.1
         )}
     with patch("objects.Fetch_Tracker.os.path.exists", return_value=True), \
@@ -143,10 +131,9 @@ def test_should_fetch_returns_true_when_threshold_exceeded_near_match():
 
 
 def test_should_fetch_returns_false_when_recently_fetched_no_match():
-    f"""Returns False when fetched {FETCH_THRESHOLDS["unknown"]["recheck_hours"] - 0.1}h ago 
-    and no next match is known (threshold: {FETCH_THRESHOLDS["unknown"]["recheck_hours"]}h)."""
+    """Returns False when fetched less than the unknown recheck interval ago and no next match is known."""
     fake_log = {"Indiana Fever": make_entry(
-        hours_ago=FETCH_THRESHOLDS["unknown"]["recheck_hours"] - 0.1, 
+        hours_ago=FETCH_THRESHOLDS["unknown"]["recheck_hours"] - 0.1,
         days_until_match=None
         )}
     with patch("objects.Fetch_Tracker.os.path.exists", return_value=True), \
@@ -156,10 +143,9 @@ def test_should_fetch_returns_false_when_recently_fetched_no_match():
 
 
 def test_should_fetch_returns_true_when_threshold_exceeded_no_match():
-    f"""Returns True when fetched {FETCH_THRESHOLDS["unknown"]["recheck_hours"] + 0.1}h ago 
-    and no next match is known (threshold: {FETCH_THRESHOLDS["unknown"]["recheck_hours"]}h)."""
+    """Returns True when fetched more than the unknown recheck interval ago and no next match is known."""
     fake_log = {"Indiana Fever": make_entry(
-        hours_ago=FETCH_THRESHOLDS["unknown"]["recheck_hours"] + 0.1, 
+        hours_ago=FETCH_THRESHOLDS["unknown"]["recheck_hours"] + 0.1,
         days_until_match=None
         )}
     with patch("objects.Fetch_Tracker.os.path.exists", return_value=True), \
@@ -243,13 +229,15 @@ def test_record_fetch_saves_zero_match_count():
 
 IMMINENT_RECHECK = FETCH_THRESHOLDS["imminent"]["recheck_hours"]
 IMMINENT_HOURS = FETCH_THRESHOLDS["imminent"]["hours"]
+IMMINENT_CLOSE_RECHECK = FETCH_THRESHOLDS["imminent_close"]["recheck_hours"]
+IMMINENT_CLOSE_HOURS = FETCH_THRESHOLDS["imminent_close"]["hours"]
 
 
 def test_imminent_clause_triggers_when_single_match_within_threshold():
-    """Returns imminent recheck hours when match_count==1 and match is within the imminent window."""
+    """Returns imminent recheck hours when match_count==1 and match is within imminent but outside imminent_close."""
     fake_log = {"Carlos Alcaraz": make_entry(
         hours_ago=IMMINENT_RECHECK - 0.1,
-        days_until_match=IMMINENT_HOURS / 24 - 0.01,
+        days_until_match=IMMINENT_CLOSE_HOURS / 24 + 0.01,
         match_count=1
     )}
     with patch("objects.Fetch_Tracker.os.path.exists", return_value=True), \
@@ -259,10 +247,10 @@ def test_imminent_clause_triggers_when_single_match_within_threshold():
 
 
 def test_imminent_clause_triggers_fetch_when_threshold_exceeded():
-    """Returns True when match_count==1, match is within the imminent window, and recheck time has passed."""
+    """Returns True when match_count==1, match is within imminent but outside imminent_close, and recheck time has passed."""
     fake_log = {"Carlos Alcaraz": make_entry(
         hours_ago=IMMINENT_RECHECK + 0.1,
-        days_until_match=IMMINENT_HOURS / 24 - 0.01,
+        days_until_match=IMMINENT_CLOSE_HOURS / 24 + 0.01,
         match_count=1
     )}
     with patch("objects.Fetch_Tracker.os.path.exists", return_value=True), \
@@ -275,7 +263,7 @@ def test_imminent_clause_does_not_trigger_when_multiple_matches():
     """Does not apply imminent logic when match_count > 1."""
     fake_log = {"Carlos Alcaraz": make_entry(
         hours_ago=IMMINENT_RECHECK - 0.1,
-        days_until_match=IMMINENT_HOURS / 24 - 0.01,
+        days_until_match=IMMINENT_CLOSE_HOURS / 24 + 0.01,
         match_count=2
     )}
     with patch("objects.Fetch_Tracker.os.path.exists", return_value=True), \
@@ -294,7 +282,6 @@ def test_imminent_clause_does_not_trigger_when_match_beyond_window():
     with patch("objects.Fetch_Tracker.os.path.exists", return_value=True), \
          patch("builtins.open", mock_open(read_data=make_log(fake_log))):
         tracker = FetchTracker()
-    # Falls through to near threshold (6h) — 2.1h ago is not enough
     assert tracker.should_fetch("Carlos Alcaraz") is False
 
 
@@ -302,7 +289,7 @@ def test_imminent_clause_does_not_trigger_when_match_count_is_zero():
     """Does not apply imminent logic when match_count is 0."""
     fake_log = {"Indiana Fever": make_entry(
         hours_ago=IMMINENT_RECHECK + 0.1,
-        days_until_match=IMMINENT_HOURS / 24 - 0.01,
+        days_until_match=IMMINENT_CLOSE_HOURS / 24 + 0.01,
         match_count=0
     )}
     with patch("objects.Fetch_Tracker.os.path.exists", return_value=True), \
@@ -316,3 +303,66 @@ def test_imminent_clause_uses_config_values():
     assert "imminent" in FETCH_THRESHOLDS
     assert "hours" in FETCH_THRESHOLDS["imminent"]
     assert "recheck_hours" in FETCH_THRESHOLDS["imminent"]
+
+
+# --- _get_recheck_hours: imminent_close logic tests ---
+
+def test_imminent_close_triggers_when_single_match_within_close_threshold():
+    """Returns imminent_close recheck hours when match_count==1 and match is within the imminent_close window."""
+    fake_log = {"Jannik Sinner": make_entry(
+        hours_ago=IMMINENT_CLOSE_RECHECK - 0.1,
+        days_until_match=IMMINENT_CLOSE_HOURS / 24 - 0.01,
+        match_count=1
+    )}
+    with patch("objects.Fetch_Tracker.os.path.exists", return_value=True), \
+         patch("builtins.open", mock_open(read_data=make_log(fake_log))):
+        tracker = FetchTracker()
+    assert tracker.should_fetch("Jannik Sinner") is False
+
+
+def test_imminent_close_triggers_fetch_when_threshold_exceeded():
+    """Returns True when match_count==1, match is within imminent_close window, and recheck time has passed."""
+    fake_log = {"Jannik Sinner": make_entry(
+        hours_ago=IMMINENT_CLOSE_RECHECK + 0.1,
+        days_until_match=IMMINENT_CLOSE_HOURS / 24 - 0.01,
+        match_count=1
+    )}
+    with patch("objects.Fetch_Tracker.os.path.exists", return_value=True), \
+         patch("builtins.open", mock_open(read_data=make_log(fake_log))):
+        tracker = FetchTracker()
+    assert tracker.should_fetch("Jannik Sinner") is True
+
+
+def test_imminent_close_takes_priority_over_imminent():
+    """imminent_close recheck is applied (not imminent) when match is within the close window."""
+    # hours_ago is greater than imminent recheck (2h) but match is within imminent_close window
+    # so imminent_close (0.5h) applies — 2.1h >> 0.5h means should fetch
+    fake_log = {"Jannik Sinner": make_entry(
+        hours_ago=IMMINENT_RECHECK + 0.1,
+        days_until_match=IMMINENT_CLOSE_HOURS / 24 - 0.01,
+        match_count=1
+    )}
+    with patch("objects.Fetch_Tracker.os.path.exists", return_value=True), \
+         patch("builtins.open", mock_open(read_data=make_log(fake_log))):
+        tracker = FetchTracker()
+    assert tracker.should_fetch("Jannik Sinner") is True
+
+
+def test_imminent_close_does_not_trigger_when_multiple_matches():
+    """Does not apply imminent_close logic when match_count > 1."""
+    fake_log = {"Jannik Sinner": make_entry(
+        hours_ago=IMMINENT_CLOSE_RECHECK - 0.1,
+        days_until_match=IMMINENT_CLOSE_HOURS / 24 - 0.01,
+        match_count=2
+    )}
+    with patch("objects.Fetch_Tracker.os.path.exists", return_value=True), \
+         patch("builtins.open", mock_open(read_data=make_log(fake_log))):
+        tracker = FetchTracker()
+    assert tracker.should_fetch("Jannik Sinner") is False
+
+
+def test_imminent_close_uses_config_values():
+    """imminent_close threshold values are read from config, not hardcoded."""
+    assert "imminent_close" in FETCH_THRESHOLDS
+    assert "hours" in FETCH_THRESHOLDS["imminent_close"]
+    assert "recheck_hours" in FETCH_THRESHOLDS["imminent_close"]

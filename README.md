@@ -74,15 +74,16 @@ You can adjust the refresh interval and fetch thresholds in `config.py`. By defa
 MAIN_LOOP_SLEEP_MINUTES = 5  # how often the main loop runs
 
 FETCH_THRESHOLDS = {
-    "far":      {"days": 7, "recheck_hours": 24},  # next match is more than 7 days away
-    "medium":   {"days": 2, "recheck_hours": 12},  # next match is 2–7 days away
-    "near":     {"days": 0, "recheck_hours": 6},   # next match is within 2 days
-    "unknown":  {"recheck_hours": 4},              # no upcoming match found
-    "imminent": {"hours": 24, "recheck_hours": 2}, # single match within this many hours
+    "far":           {"days": 7,  "recheck_hours": 24},  # next match is more than 7 days away
+    "medium":        {"days": 2,  "recheck_hours": 12},  # next match is 2-7 days away
+    "near":          {"days": 0,  "recheck_hours": 6},   # next match is within 2 days
+    "unknown":       {"recheck_hours": 4},               # no upcoming match found
+    "imminent":      {"hours": 24, "recheck_hours": 2},  # single match within this many hours
+    "imminent_close":{"hours": 4,  "recheck_hours": 0.5} # single match within this many hours
 }
 ```
 
-Each team is re-fetched at different rates depending on how soon their next match is, so the program avoids unnecessary API calls when games are far away, but checks often when matches are approaching. As a special case, if only one match is found and it is within the `imminent` window, the program checks every `recheck_hours` regardless of the other thresholds.
+Each team is re-fetched at different rates depending on how soon their next match is, so the program avoids unnecessary API calls when games are far away, but checks often when matches are approaching. As a special case, if only one match is found the program applies stricter refresh rates: every `imminent.recheck_hours` when the match is within the `imminent` window, and every `imminent_close.recheck_hours` when it is within the closer `imminent_close` window.
 
 ---
 
@@ -143,3 +144,4 @@ Contributions are welcome! If you'd like to add support for a new sport, improve
 Please make sure any new functionality is covered by tests.
 
 ---
+

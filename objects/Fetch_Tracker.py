@@ -60,11 +60,13 @@ class FetchTracker:
             return FETCH_THRESHOLDS["unknown"]["recheck_hours"]
 
         hours_until_match = (next_match - now).total_seconds() / 3600
-        logger.debug(f"match_count={match_count}, hours_until_match={hours_until_match:.2f}")
 
-        if match_count == 1 and hours_until_match <= FETCH_THRESHOLDS["imminent"]["hours"]:
-            return FETCH_THRESHOLDS["imminent"]["recheck_hours"]
-        
+        if match_count == 1:
+            if hours_until_match <= FETCH_THRESHOLDS["imminent_close"]["hours"]:
+                return FETCH_THRESHOLDS["imminent_close"]["recheck_hours"]
+            if hours_until_match <= FETCH_THRESHOLDS["imminent"]["hours"]:
+                return FETCH_THRESHOLDS["imminent"]["recheck_hours"]
+
         days_until_match = hours_until_match / 24
 
         if days_until_match > FETCH_THRESHOLDS["far"]["days"]:
@@ -73,7 +75,6 @@ class FetchTracker:
             return FETCH_THRESHOLDS["medium"]["recheck_hours"]
         else:
             return FETCH_THRESHOLDS["near"]["recheck_hours"]
-
 
     def record_fetch(self, team_name: str, next_match: datetime | None, match_count: int) -> None:
         """Record that a fetch was just performed for this team, along with their next match time."""
