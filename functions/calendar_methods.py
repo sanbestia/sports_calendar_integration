@@ -61,50 +61,54 @@ def update_events(service: Resource, calendar_id: str, game_list: list[Match], t
     logger.info("")
     time_min = (datetime.now()-timedelta(hours=12)).astimezone().replace(microsecond=0).isoformat()
     existing_events = []
+
     response = service.events().list(calendarId=calendar_id, timeMin=time_min).execute()
-    while True:
-        existing_events.extend(response.get("items", []))
-        next_page_token = response.get("nextPageToken")
-        if not next_page_token:
-            break
+    existing_events.extend(response.get("items", []))
+    next_page_token = response.get("nextPageToken")
+
+    while next_page_token:
         response = service.events().list(
             calendarId=calendar_id,
             timeMin=time_min,
             pageToken=next_page_token
         ).execute()
+        existing_events.extend(response.get("items", []))
+        next_page_token = response.get("nextPageToken")
+
+    # Build a dict keyed by game_id for O(1) lookup instead of scanning the full list per game
+    existing_by_game_id: dict[str, dict] = {}
+    for event in existing_events:
+        props = event.get("extendedProperties", {}).get("private", {})
+        game_id = props.get("game_id")
+        if game_id:
+            existing_by_game_id[game_id] = event
+        else:
+            logger.warning(f"Skipping event '{event.get('summary', 'unknown')}' — no game_id in extendedProperties")
 
     newly_created = 0
 
     for game in game_list:
-        should_create_new = True
-        for event in existing_events:
+        event = existing_by_game_id.get(str(game.game_id))
+
+        if event:
             props = event.get("extendedProperties", {}).get("private", {})
-            event_game_id = props.get("game_id")
-
-            if not event_game_id:
-                logger.warning(f"Skipping event '{event.get('summary', 'unknown')}' — no game_id in extendedProperties")
-                continue
-
-            if event_game_id == str(game.game_id):
-                should_create_new = False
-                if (
-                    props.get("start_time") != game.start_time.strftime("%Y-%m-%d %H:%M:%S")
-                    or props.get("side_one") != game.side_one
-                    or props.get("side_two") != game.side_two
-                ):
-                    logger.info("Found change in event schedule. Updating...")
-                    event_to_update = service.events().get(calendarId=calendar_id, eventId=event["id"]).execute()
-                    event_to_update.update(_build_event_body(game, time_zone))
-                    updated_event = service.events().update(
-                        calendarId=calendar_id,
-                        eventId=event['id'],
-                        body=event_to_update
-                    ).execute()
-                    logger.info(f'Event updated: {updated_event.get("summary")} — {updated_event.get("htmlLink")}')
-                else:
-                    logger.info(f"'{event['summary']}' already up to date")
-
-        if should_create_new:
+            if (
+                props.get("start_time") != game.start_time.strftime("%Y-%m-%d %H:%M:%S")
+                or props.get("side_one") != game.side_one
+                or props.get("side_two") != game.side_two
+            ):
+                logger.info("Found change in event schedule. Updating...")
+                event_to_update = service.events().get(calendarId=calendar_id, eventId=event["id"]).execute()
+                event_to_update.update(_build_event_body(game, time_zone))
+                updated_event = service.events().update(
+                    calendarId=calendar_id,
+                    eventId=event['id'],
+                    body=event_to_update
+                ).execute()
+                logger.info(f'Event updated: {updated_event.get("summary")} — {updated_event.get("htmlLink")}')
+            else:
+                logger.info(f"'{event['summary']}' already up to date")
+        else:
             logger.info("New match upcoming! Creating event...")
             try:
                 created_event = service.events().insert(
