@@ -15,8 +15,8 @@ token.json
 .env
 
 # Generated files
-api_call_log.json 
-fetch_log.json
+api_calls.db
+fetch_log.db
 
 # Personal queries
 queries.json
