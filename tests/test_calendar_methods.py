@@ -118,7 +118,7 @@ def test_creates_new_event_when_no_existing():
         )
 
     mock_service.events().insert.assert_called_once()
-    assert result == 0
+    assert result == 1
 
 
 def test_does_not_create_event_when_already_exists_and_unchanged():
@@ -204,7 +204,7 @@ def test_handles_multiple_matches():
         )
 
     assert mock_service.events().insert.call_count == 2
-    assert result == 0
+    assert result == 2
 
 
 def test_returns_correct_count_with_multiple_existing_events():
@@ -224,4 +224,4 @@ def test_returns_correct_count_with_multiple_existing_events():
             time_zone="UTC"
         )
 
-    assert result == 2
+    assert result == 1

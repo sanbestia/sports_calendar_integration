@@ -74,6 +74,8 @@ def update_events(creds, calendar_id, game_list, time_zone) -> int:
             pageToken=next_page_token
         ).execute()
 
+    newly_created = 0
+
     for game in game_list:
         should_create_new = True
         for event in existing_events:
@@ -111,7 +113,14 @@ def update_events(creds, calendar_id, game_list, time_zone) -> int:
                     body=_build_event_body(game, time_zone)
                 ).execute()
                 logger.info(f'Event created: {created_event.get("summary")} — {created_event.get("htmlLink")}')
+                newly_created += 1
             except HttpError as error:
                 logger.error(f"An error occurred: {error}")
 
-    return len(existing_events)
+    matched_event_ids = {str(game.game_id) for game in game_list}
+    team_event_count = sum(
+        1 for event in existing_events
+        if event.get("extendedProperties", {}).get("private", {}).get("game_id") in matched_event_ids
+    )
+
+    return team_event_count + newly_created

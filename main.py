@@ -118,6 +118,7 @@ def main() -> None:
 
         now = datetime.datetime.now(tz=tz)
         deadline = now + datetime.timedelta(minutes=sleep_minutes)
+        logger.info("")
         logger.info(api_tracker.status())
         logger.info(
             f"Next cycle in {sleep_minutes} minute{'' if sleep_minutes == 1 else 's'} "
