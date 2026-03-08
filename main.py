@@ -11,8 +11,8 @@ from functions.calendar_methods import update_events
 from functions.get_next_matches import get_next_matches
 from functions.get_ids import get_ids
 from functions.time_keeper import wait
-from objects.API_Call_Tracker import APICallTracker
-from objects.Fetch_Tracker import FetchTracker
+from objects.APICallTracker import APICallTracker
+from objects.FetchTracker import FetchTracker
 from config import MAIN_LOOP_SLEEP_MINUTES
 
 load_dotenv()
@@ -49,7 +49,7 @@ def build_queries_from_get_ids(tracker=None) -> dict:
         queries[data["name"]] = {
             "id": team_id,
             "sport": data["sport"],
-            "player_type": "team",
+            "player_type": data["player_type"],
             "calendar": calendar_id
         }
     return queries
@@ -118,7 +118,6 @@ def main() -> None:
 
         now = datetime.datetime.now(tz=tz)
         deadline = now + datetime.timedelta(minutes=sleep_minutes)
-        logger.info("")
         logger.info(api_tracker.status())
         logger.info(
             f"Next cycle in {sleep_minutes} minute{'' if sleep_minutes == 1 else 's'} "

@@ -1,74 +1,58 @@
 import logging
-import os
-import requests
-import json
-from dotenv import load_dotenv
-
-load_dotenv()
-RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
+from functions.search_entity import search_entity, pick_entity, _ask_yes_no
 
 logger = logging.getLogger(__name__)
 
 
-def get_ids(tracker=None) -> dict[str, dict[str, str]]:
-    id_dict: dict[str, dict[str, str]] = dict()
+def _ask_non_empty(prompt: str) -> str:
+    """Prompt the user until they enter a non-empty string."""
     while True:
-        name: str = input(f"Enter player/team name: ")
-        sport: str = input("Enter sport to look for: ")
+        value = input(prompt).strip()
+        if value:
+            return value
+        logger.info("This field cannot be empty, please try again.")
 
-        url: str = (f"https://allsportsapi2.p.rapidapi.com/api/"
-               f"{'' if sport.lower() == 'football' else sport.lower() + '/'}"
-               f"search/"
-               f"{name.lower()}")
 
-        headers: dict[str, str] = {
-            "X-RapidAPI-Key": RAPIDAPI_KEY,
-            "X-RapidAPI-Host": "allsportsapi2.p.rapidapi.com"
-        }
+def get_ids(tracker=None) -> dict[str, dict[str, str]]:
+    id_dict: dict[str, dict[str, str]] = {}
 
-        logger.info("Looking for players/teams...")
+    while True:
+        name: str = _ask_non_empty("Enter player/team name: ")
+        sport: str = _ask_non_empty("Enter sport to look for: ")
 
-        try:
-            request: requests.Response = requests.get(url, headers=headers)
-            if tracker:
-                tracker.increment()
-        except (TimeoutError, ConnectionError) as e:
-            logger.error(f"Couldn't communicate with sports API: {e}")
+        hits = search_entity(name, sport, tracker=tracker)
+
+        if not hits:
+            logger.info("No player/team found with that name, please try again.")
             continue
 
-        if not request.text:
-            logger.info("No player/team found with that name, try again")
-            continue
-
-        hits: list[filter] = list(filter(lambda result: result['type'] == 'team', json.loads(request.text)['results']))
-        chosen: int = 0
-
-        if len(hits) > 1:
-            logger.info("Multiple hits found:")
-            for order, hit in enumerate(hits):
-                team_name: str = " ".join(x.capitalize() for x in hit["entity"]["slug"].split("-"))
-                team_gender: str = hit["entity"].get("gender")
-                logger.info(f'  {order + 1}: {team_name} {"(" + team_gender + ")" if team_gender else ""}')
-            chosen = int(input("Type the number associated to the correct option: ")) - 1
-
-        print()
-        confirmed: str = input(f'{hits[chosen]["entity"]["name"]} added to the search list. Is this correct? Y/N: ')
-        if confirmed.upper() == 'Y':
-            id_dict[str(hits[chosen]["entity"]["id"])] = {
-                "name": hits[chosen]["entity"]["name"],
-                "sport": sport
+        chosen = pick_entity(hits)
+        if chosen:
+            id_dict[chosen["id"]] = {
+                "name": chosen["name"],
+                "sport": chosen["sport"],
+                "player_type": chosen["player_type"]
             }
-        else:
-            logger.info("Choice discarded")
 
-        if input(f'Search for another player/team? Y/N: ').upper() == "N":
+        if not _ask_yes_no("Search for another player/team? Y/N: "):
             return id_dict
 
-        print()
+        logger.info("")
 
 
 def main():
-    print(get_ids())
+    from objects.APICallTracker import APICallTracker
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+    tracker = APICallTracker()
+    results = get_ids(tracker=tracker)
+
+    if not results:
+        logger.info("No entries were saved.")
+        return
+
+    logger.info("\n--- Results ---")
+    for entity_id, data in results.items():
+        logger.info(f"{data['name']} | ID: {entity_id} | Type: {data['player_type']} | Sport: {data['sport']}")
 
 
 if __name__ == '__main__':

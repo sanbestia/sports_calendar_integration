@@ -63,7 +63,7 @@ def test_load_queries_preserves_other_fields():
 def test_build_queries_returns_correct_structure():
     """Returns correctly structured dict from get_ids output."""
     fake_id_dict = {
-        "3429": {"name": "San Antonio Spurs", "sport": "basketball"}
+        "3429": {"name": "San Antonio Spurs", "sport": "basketball", "player_type": "team"}
     }
 
     with patch("main.get_ids", return_value=fake_id_dict), \
@@ -73,14 +73,28 @@ def test_build_queries_returns_correct_structure():
     assert "San Antonio Spurs" in result
     assert result["San Antonio Spurs"]["id"] == "3429"
     assert result["San Antonio Spurs"]["sport"] == "basketball"
+    assert result["San Antonio Spurs"]["player_type"] == "team"
     assert result["San Antonio Spurs"]["calendar"] == "real_basketball_calendar_id"
+
+
+def test_build_queries_preserves_player_type_for_player():
+    """Preserves player_type 'player' when a player entry is built."""
+    fake_id_dict = {
+        "275923": {"name": "Carlos Alcaraz", "sport": "tennis", "player_type": "player"}
+    }
+
+    with patch("main.get_ids", return_value=fake_id_dict), \
+         patch("builtins.input", return_value="real_tennis_calendar_id"):
+        result = build_queries_from_get_ids()
+
+    assert result["Carlos Alcaraz"]["player_type"] == "player"
 
 
 def test_build_queries_handles_multiple_entries():
     """Correctly builds dict with multiple entries."""
     fake_id_dict = {
-        "3429": {"name": "San Antonio Spurs", "sport": "basketball"},
-        "364366": {"name": "T1", "sport": "esport"}
+        "3429":   {"name": "San Antonio Spurs", "sport": "basketball", "player_type": "team"},
+        "364366": {"name": "T1",                "sport": "esport",     "player_type": "team"}
     }
 
     with patch("main.get_ids", return_value=fake_id_dict), \

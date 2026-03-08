@@ -91,9 +91,19 @@ Each team is re-fetched at different rates depending on how soon their next matc
 
 ## Usage
 
+### Looking up team and player IDs
+
+The `id` values in `queries.json` come from the AllSports API. To look them up, run `get_ids` as a standalone script:
+
+```bash
+uv run python -m functions.get_ids
+```
+
+You will be prompted to enter a name and sport, shown a list of matches to choose from, and asked to confirm your selection. At the end, the script prints a summary of all selected entries with their IDs. API calls made during the search are tracked against your daily limit.
+
 ### With a predefined query file
 
-Create a `queries.json` file in the root directory (see format below) and run:
+Once you have your IDs, create a `queries.json` file in the root directory and run:
 ```bash
 uv run python main.py --queries queries.json
 ```
@@ -120,12 +130,12 @@ The `calendar` field should match one of the key names defined in your `.env` fi
 
 ### Interactive mode
 
-Run without arguments to search for teams and players interactively:
+Run without arguments to search for teams and players interactively, without needing a `queries.json` file:
 ```bash
 uv run python main.py
 ```
 
-You will be prompted to enter team/player names, select from results, and provide calendar IDs.
+You will be prompted to enter team/player names, select from results, and provide calendar IDs. This uses the same search flow as `get_ids` but feeds directly into the main loop.
 
 ### Running tests
 ```bash
@@ -146,4 +156,3 @@ Contributions are welcome! If you'd like to add support for a new sport, improve
 Please make sure any new functionality is covered by tests.
 
 ---
-
