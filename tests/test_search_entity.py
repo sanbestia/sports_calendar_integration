@@ -84,7 +84,7 @@ def test_search_entity_returns_list_of_hits():
     """Returns a list of hits for a valid search."""
     with patch("functions.search_entity.requests.get") as mock_get:
         mock_get.return_value = make_mock_response(FAKE_TEAM_ENTITY)
-        result = search_entity("spurs", "basketball")
+        result = search_entity("spurs", "basketball", MagicMock())
 
     assert len(result) == 1
     assert result[0]["id"] == "3429"
@@ -96,7 +96,7 @@ def test_search_entity_sets_player_type_team_when_no_player_team_info():
     """Sets player_type to 'team' when entity has no playerTeamInfo."""
     with patch("functions.search_entity.requests.get") as mock_get:
         mock_get.return_value = make_mock_response(FAKE_TEAM_ENTITY)
-        result = search_entity("spurs", "basketball")
+        result = search_entity("spurs", "basketball", MagicMock())
 
     assert result[0]["player_type"] == "team"
 
@@ -105,7 +105,7 @@ def test_search_entity_sets_player_type_player_when_player_team_info_present():
     """Sets player_type to 'player' when entity has playerTeamInfo."""
     with patch("functions.search_entity.requests.get") as mock_get:
         mock_get.return_value = make_mock_response(FAKE_PLAYER_ENTITY)
-        result = search_entity("alcaraz", "tennis")
+        result = search_entity("alcaraz", "tennis", MagicMock())
 
     assert result[0]["player_type"] == "player"
     assert result[0]["id"] == "275923"
@@ -115,7 +115,7 @@ def test_search_entity_returns_empty_list_on_empty_response():
     """Returns empty list when API returns an empty response."""
     with patch("functions.search_entity.requests.get") as mock_get:
         mock_get.return_value = make_mock_empty_response()
-        result = search_entity("zzzzz", "basketball")
+        result = search_entity("zzzzz", "basketball", MagicMock())
 
     assert result == []
 
@@ -124,7 +124,7 @@ def test_search_entity_returns_empty_list_on_invalid_json():
     """Returns empty list when API returns invalid JSON."""
     with patch("functions.search_entity.requests.get") as mock_get:
         mock_get.return_value = make_mock_invalid_response()
-        result = search_entity("spurs", "basketball")
+        result = search_entity("spurs", "basketball", MagicMock())
 
     assert result == []
 
@@ -133,7 +133,7 @@ def test_search_entity_returns_empty_list_on_connection_error():
     """Returns empty list gracefully when a network error occurs."""
     with patch("functions.search_entity.requests.get") as mock_get:
         mock_get.side_effect = ConnectionError
-        result = search_entity("spurs", "basketball")
+        result = search_entity("spurs", "basketball", MagicMock())
 
     assert result == []
 
@@ -142,27 +142,27 @@ def test_search_entity_returns_empty_list_on_timeout():
     """Returns empty list gracefully when a timeout occurs."""
     with patch("functions.search_entity.requests.get") as mock_get:
         mock_get.side_effect = TimeoutError
-        result = search_entity("spurs", "basketball")
+        result = search_entity("spurs", "basketball", MagicMock())
 
     assert result == []
 
 
 def test_search_entity_increments_tracker():
-    """Increments the API tracker when a tracker is provided."""
+    """Increments the tracker on a successful request."""
     mock_tracker = MagicMock()
     with patch("functions.search_entity.requests.get") as mock_get:
         mock_get.return_value = make_mock_response(FAKE_TEAM_ENTITY)
-        search_entity("spurs", "basketball", tracker=mock_tracker)
+        search_entity("spurs", "basketball", mock_tracker)
 
     mock_tracker.increment.assert_called_once()
 
 
 def test_search_entity_does_not_increment_tracker_on_error():
-    """Does not increment the API tracker when a network error occurs."""
+    """Does not increment the tracker when a network error occurs."""
     mock_tracker = MagicMock()
     with patch("functions.search_entity.requests.get") as mock_get:
         mock_get.side_effect = ConnectionError
-        search_entity("spurs", "basketball", tracker=mock_tracker)
+        search_entity("spurs", "basketball", mock_tracker)
 
     mock_tracker.increment.assert_not_called()
 
@@ -171,7 +171,7 @@ def test_search_entity_omits_sport_segment_for_football():
     """Builds URL without sport segment for football."""
     with patch("functions.search_entity.requests.get") as mock_get:
         mock_get.return_value = make_mock_response(FAKE_TEAM_ENTITY)
-        search_entity("argentina", "football")
+        search_entity("argentina", "football", MagicMock())
 
     called_url = mock_get.call_args[0][0]
     assert "/football/" not in called_url
@@ -182,7 +182,7 @@ def test_search_entity_includes_sport_segment_for_non_football():
     """Builds URL with sport segment for non-football sports."""
     with patch("functions.search_entity.requests.get") as mock_get:
         mock_get.return_value = make_mock_response(FAKE_TEAM_ENTITY)
-        search_entity("spurs", "basketball")
+        search_entity("spurs", "basketball", MagicMock())
 
     called_url = mock_get.call_args[0][0]
     assert "/basketball/search/spurs" in called_url
@@ -192,7 +192,7 @@ def test_search_entity_returns_multiple_hits():
     """Returns all hits when API returns multiple results."""
     with patch("functions.search_entity.requests.get") as mock_get:
         mock_get.return_value = make_mock_response(FAKE_MULTIPLE_ENTITIES)
-        result = search_entity("spurs", "basketball")
+        result = search_entity("spurs", "basketball", MagicMock())
 
     assert len(result) == 2
 

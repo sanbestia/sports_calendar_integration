@@ -22,7 +22,7 @@ def _build_api_url(sport: str, player_type: str, team_id: str, endpoint: str, pa
     return url
 
 
-def get_next_matches(team_id: str, team_name: str, player_type: str, sport: str, time_zone: str, tracker: APICallTracker | None = None) -> list[Match]:
+def get_next_matches(team_id: str, team_name: str, player_type: str, sport: str, time_zone: str, tracker: APICallTracker) -> list[Match]:
     api_key = os.getenv("RAPIDAPI_KEY")
     if not api_key:
         raise ValueError("RAPIDAPI_KEY environment variable is not set")
@@ -45,8 +45,7 @@ def get_next_matches(team_id: str, team_name: str, player_type: str, sport: str,
 
         try:
             request = requests.get(url, headers=headers)
-            if tracker:
-                tracker.increment()
+            tracker.increment()
         except (TimeoutError, ConnectionError) as e:
             logger.error(f"Couldn't communicate with sports API: {e}")
             return []
@@ -77,8 +76,7 @@ def get_next_matches(team_id: str, team_name: str, player_type: str, sport: str,
 
         try:
             request = requests.get(url, headers=headers)
-            if tracker:
-                tracker.increment()
+            tracker.increment()
         except (TimeoutError, ConnectionError) as e:
             logger.error(f"Couldn't communicate with sports API: {e}")
             return []

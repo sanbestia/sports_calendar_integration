@@ -11,7 +11,7 @@ RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
 logger = logging.getLogger(__name__)
 
 
-def search_entity(name: str, sport: str, tracker: APICallTracker | None = None) -> list[dict]:
+def search_entity(name: str, sport: str, tracker: APICallTracker) -> list[dict]:
     """Search the AllSports API for a player or team by name and sport.
     Returns a list of result dicts, each containing 'id', 'name', 'type', 'gender', and 'sport'."""
     url: str = (
@@ -27,8 +27,7 @@ def search_entity(name: str, sport: str, tracker: APICallTracker | None = None) 
 
     try:
         response = requests.get(url, headers=headers)
-        if tracker:
-            tracker.increment()
+        tracker.increment()
     except (TimeoutError, ConnectionError) as e:
         logger.error(f"Couldn't communicate with sports API: {e}")
         return []
