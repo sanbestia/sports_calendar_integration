@@ -5,6 +5,7 @@ import argparse
 import datetime
 from dotenv import load_dotenv
 from tzlocal import get_localzone
+from googleapiclient.discovery import build
 
 from functions.check_calendar_tokens import check_calendar_tokens
 from functions.calendar_methods import update_events
@@ -67,6 +68,7 @@ def main() -> None:
 
     tz = get_localzone()
     creds = check_calendar_tokens()
+    calendar_service = build("calendar", "v3", credentials=creds)
     api_tracker = APICallTracker()
     fetch_tracker = FetchTracker()
 
@@ -106,7 +108,7 @@ def main() -> None:
 
             if matches:
                 match_count = update_events(
-                    creds=creds,
+                    service=calendar_service,
                     calendar_id=data_dict["calendar"],
                     game_list=matches,
                     time_zone=str(tz)
@@ -115,7 +117,7 @@ def main() -> None:
                 match_count = 0
 
             fetch_tracker.record_fetch(name, earliest, match_count)
-            
+
             logger.info("")
             logger.info("--------------------------------------------------")
             logger.info("")
@@ -128,7 +130,7 @@ def main() -> None:
             f"(@ {deadline.hour:02}:{deadline.minute:02})"
         )
         wait(deadline, tz)
-        
+
         logger.info("")
         logger.info("------------------------------------------------------------------------")
         logger.info("")

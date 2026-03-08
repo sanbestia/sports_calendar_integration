@@ -1,8 +1,7 @@
 import logging
-from googleapiclient.discovery import build
+from googleapiclient.discovery import Resource
 from googleapiclient.errors import HttpError
 from datetime import datetime, timedelta
-from google.oauth2.credentials import Credentials
 from objects.Match import Match
 
 logger = logging.getLogger(__name__)
@@ -22,9 +21,8 @@ ICONS: dict[str, str] = {
 }
 
 
-def new_calendar(creds, calendar_name: str) -> dict | None:
+def new_calendar(service: Resource, calendar_name: str) -> dict | None:
     try:
-        service = build("calendar", "v3", credentials=creds)
         created_calendar = service.calendars().insert(body={"summary": calendar_name}).execute()
         return created_calendar
     except HttpError as error:
@@ -32,7 +30,7 @@ def new_calendar(creds, calendar_name: str) -> dict | None:
         return None
 
 
-def _build_event_body(game, time_zone: str) -> dict:
+def _build_event_body(game: Match, time_zone: str) -> dict:
     """Build a Google Calendar event body for a given match."""
     return {
         'summary': f'{ICONS[game.sport]} {game.side_one} vs {game.side_two} - {game.tournament} ({game.stage})',
@@ -56,9 +54,8 @@ def _build_event_body(game, time_zone: str) -> dict:
     }
 
 
-def update_events(creds: Credentials, calendar_id: str, game_list: list[Match], time_zone: str) -> int:
+def update_events(service: Resource, calendar_id: str, game_list: list[Match], time_zone: str) -> int:
     logger.info("Updating calendar...")
-    service = build("calendar", "v3", credentials=creds)
 
     logger.info("Looking up future events...")
     logger.info("")
