@@ -59,6 +59,7 @@ def update_events(creds, calendar_id, game_list, time_zone):
     service = build("calendar", "v3", credentials=creds)
 
     logger.info("Looking up future events...")
+    logger.info("")
     time_min = (datetime.now()-timedelta(hours=12)).astimezone().replace(microsecond=0).isoformat()
     existing_events = []
     response = service.events().list(calendarId=calendar_id, timeMin=time_min).execute()
@@ -112,5 +113,3 @@ def update_events(creds, calendar_id, game_list, time_zone):
                 logger.info(f'Event created: {created_event.get("summary")} — {created_event.get("htmlLink")}')
             except HttpError as error:
                 logger.error(f"An error occurred: {error}")
-
-    logger.info("")

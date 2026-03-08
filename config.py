@@ -1,8 +1,9 @@
 FETCH_THRESHOLDS = {
-    "far":     {"days": 7, "recheck_hours": 24},
-    "medium":  {"days": 2, "recheck_hours": 12},
-    "near":    {"days": 0, "recheck_hours": 6},
-    "unknown": {"recheck_hours": 2},
+    "far":      {"days": 7, "recheck_hours": 24},
+    "medium":   {"days": 2, "recheck_hours": 12},
+    "near":     {"days": 0, "recheck_hours": 6},
+    "unknown":  {"recheck_hours": 2},
+    "imminent": {"hours": 24, "recheck_hours": 2},  # single match within this many hours
 }
 
 MAIN_LOOP_SLEEP_MINUTES = 5

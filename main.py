@@ -99,8 +99,10 @@ def main() -> None:
                 tracker=api_tracker
             )
 
+            logger.info("")
+            
             earliest = min((m.start_time for m in matches), default=None)
-            fetch_tracker.record_fetch(name, earliest)
+            fetch_tracker.record_fetch(name, earliest, len(matches))
 
             if matches:
                 update_events(
@@ -109,7 +111,8 @@ def main() -> None:
                     game_list=matches,
                     time_zone=str(tz)
                 )
-
+                logger.info("")
+                
             logger.info("--------------------------------------------------")
             logger.info("")
         

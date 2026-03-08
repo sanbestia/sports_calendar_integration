@@ -122,6 +122,4 @@ def get_next_matches(team_id: str, team_name: str, player_type: str, sport: str,
         logger.info(f"{game} ({time_zone})")
         next_games.append(game)
 
-    logger.info("")
-
     return next_games

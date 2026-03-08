@@ -8,13 +8,14 @@ from config import FETCH_THRESHOLDS
 
 # --- Helpers ---
 
-def make_entry(hours_ago: float, days_until_match: float | None) -> dict:
+def make_entry(hours_ago: float, days_until_match: float | None, match_count: int = 0) -> dict:
     """Create a fake fetch log entry."""
     last_fetched = datetime.now(timezone.utc) - timedelta(hours=hours_ago)
     next_match = datetime.now(timezone.utc) + timedelta(days=days_until_match) if days_until_match is not None else None
     return {
         "last_fetched": last_fetched.isoformat(),
-        "next_match": next_match.isoformat() if next_match else None
+        "next_match": next_match.isoformat() if next_match else None,
+        "match_count": match_count
     }
 
 
@@ -176,7 +177,7 @@ def test_record_fetch_saves_entry_with_next_match():
     with patch("objects.Fetch_Tracker.os.path.exists", return_value=False), \
          patch("builtins.open", mock_open()) as mock_file:
         tracker = FetchTracker()
-        tracker.record_fetch("Carlos Alcaraz", next_match)
+        tracker.record_fetch("Carlos Alcaraz", next_match, match_count=0)
 
     assert "Carlos Alcaraz" in tracker.log
     assert tracker.log["Carlos Alcaraz"]["next_match"] == next_match.isoformat()
@@ -187,7 +188,7 @@ def test_record_fetch_saves_entry_without_next_match():
     with patch("objects.Fetch_Tracker.os.path.exists", return_value=False), \
          patch("builtins.open", mock_open()):
         tracker = FetchTracker()
-        tracker.record_fetch("Indiana Fever", None)
+        tracker.record_fetch("Indiana Fever", None, match_count=0)
 
     assert tracker.log["Indiana Fever"]["next_match"] is None
 
@@ -201,7 +202,7 @@ def test_record_fetch_overwrites_previous_entry():
     with patch("objects.Fetch_Tracker.os.path.exists", return_value=True), \
          patch("builtins.open", mock_open(read_data=make_log(fake_log))):
         tracker = FetchTracker()
-        tracker.record_fetch("Carlos Alcaraz", next_match)
+        tracker.record_fetch("Carlos Alcaraz", next_match, match_count=2)
 
     assert tracker.log["Carlos Alcaraz"]["next_match"] == next_match.isoformat()
 
@@ -211,6 +212,107 @@ def test_record_fetch_persists_to_file():
     with patch("objects.Fetch_Tracker.os.path.exists", return_value=False), \
          patch("builtins.open", mock_open()) as mock_file:
         tracker = FetchTracker()
-        tracker.record_fetch("T1", None)
+        tracker.record_fetch("T1", None, match_count=0)
 
     mock_file.assert_called_with(FETCH_LOG_FILE, "w")
+
+
+def test_record_fetch_saves_match_count():
+    """Saves match_count correctly when recording a fetch."""
+    next_match = datetime.now(timezone.utc) + timedelta(days=1)
+
+    with patch("objects.Fetch_Tracker.os.path.exists", return_value=False), \
+         patch("builtins.open", mock_open()):
+        tracker = FetchTracker()
+        tracker.record_fetch("Carlos Alcaraz", next_match, match_count=3)
+
+    assert tracker.log["Carlos Alcaraz"]["match_count"] == 3
+
+
+def test_record_fetch_saves_zero_match_count():
+    """Saves match_count of 0 when no matches were found."""
+    with patch("objects.Fetch_Tracker.os.path.exists", return_value=False), \
+         patch("builtins.open", mock_open()):
+        tracker = FetchTracker()
+        tracker.record_fetch("Indiana Fever", None, match_count=0)
+
+    assert tracker.log["Indiana Fever"]["match_count"] == 0
+
+
+# --- _get_recheck_hours: imminent logic tests ---
+
+IMMINENT_RECHECK = FETCH_THRESHOLDS["imminent"]["recheck_hours"]
+IMMINENT_HOURS = FETCH_THRESHOLDS["imminent"]["hours"]
+
+
+def test_imminent_clause_triggers_when_single_match_within_threshold():
+    """Returns imminent recheck hours when match_count==1 and match is within the imminent window."""
+    fake_log = {"Carlos Alcaraz": make_entry(
+        hours_ago=IMMINENT_RECHECK - 0.1,
+        days_until_match=IMMINENT_HOURS / 24 - 0.01,
+        match_count=1
+    )}
+    with patch("objects.Fetch_Tracker.os.path.exists", return_value=True), \
+         patch("builtins.open", mock_open(read_data=make_log(fake_log))):
+        tracker = FetchTracker()
+    assert tracker.should_fetch("Carlos Alcaraz") is False
+
+
+def test_imminent_clause_triggers_fetch_when_threshold_exceeded():
+    """Returns True when match_count==1, match is within the imminent window, and recheck time has passed."""
+    fake_log = {"Carlos Alcaraz": make_entry(
+        hours_ago=IMMINENT_RECHECK + 0.1,
+        days_until_match=IMMINENT_HOURS / 24 - 0.01,
+        match_count=1
+    )}
+    with patch("objects.Fetch_Tracker.os.path.exists", return_value=True), \
+         patch("builtins.open", mock_open(read_data=make_log(fake_log))):
+        tracker = FetchTracker()
+    assert tracker.should_fetch("Carlos Alcaraz") is True
+
+
+def test_imminent_clause_does_not_trigger_when_multiple_matches():
+    """Does not apply imminent logic when match_count > 1."""
+    fake_log = {"Carlos Alcaraz": make_entry(
+        hours_ago=IMMINENT_RECHECK - 0.1,
+        days_until_match=IMMINENT_HOURS / 24 - 0.01,
+        match_count=2
+    )}
+    with patch("objects.Fetch_Tracker.os.path.exists", return_value=True), \
+         patch("builtins.open", mock_open(read_data=make_log(fake_log))):
+        tracker = FetchTracker()
+    assert tracker.should_fetch("Carlos Alcaraz") is False
+
+
+def test_imminent_clause_does_not_trigger_when_match_beyond_window():
+    """Does not apply imminent logic when match_count==1 but match is beyond the imminent window."""
+    fake_log = {"Carlos Alcaraz": make_entry(
+        hours_ago=IMMINENT_RECHECK + 0.1,
+        days_until_match=IMMINENT_HOURS / 24 + 0.1,
+        match_count=1
+    )}
+    with patch("objects.Fetch_Tracker.os.path.exists", return_value=True), \
+         patch("builtins.open", mock_open(read_data=make_log(fake_log))):
+        tracker = FetchTracker()
+    # Falls through to near threshold (6h) — 2.1h ago is not enough
+    assert tracker.should_fetch("Carlos Alcaraz") is False
+
+
+def test_imminent_clause_does_not_trigger_when_match_count_is_zero():
+    """Does not apply imminent logic when match_count is 0."""
+    fake_log = {"Indiana Fever": make_entry(
+        hours_ago=IMMINENT_RECHECK + 0.1,
+        days_until_match=IMMINENT_HOURS / 24 - 0.01,
+        match_count=0
+    )}
+    with patch("objects.Fetch_Tracker.os.path.exists", return_value=True), \
+         patch("builtins.open", mock_open(read_data=make_log(fake_log))):
+        tracker = FetchTracker()
+    assert tracker.should_fetch("Indiana Fever") is False
+
+
+def test_imminent_clause_uses_config_values():
+    """Imminent threshold values are read from config, not hardcoded."""
+    assert "imminent" in FETCH_THRESHOLDS
+    assert "hours" in FETCH_THRESHOLDS["imminent"]
+    assert "recheck_hours" in FETCH_THRESHOLDS["imminent"]
