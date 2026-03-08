@@ -67,7 +67,9 @@ CALENDAR_ID_SPORT2=your_calendar_id_here
 ...
 ```
 
-To find your Google Calendar ID, go to Google Calendar → Settings → select a calendar → scroll down to "Integrate calendar".
+You may add as many Google Calendar IDs as you wish.
+
+> **Note:** To find your Google Calendar ID, go to Google Calendar → Settings → select a calendar → scroll down to "Integrate calendar".
 
 You can adjust the refresh interval and fetch thresholds in `config.py`. By default they are:
 ```python
@@ -99,11 +101,11 @@ uv run python main.py --queries queries.json
 **`queries.json` format example:**
 ```json
 {
-    "San Antonio Spurs": {
-        "id": "3429",
-        "sport": "basketball",
-        "player_type": "team",
-        "calendar": "CALENDAR_ID_BASKETBALL"
+    "Carlos Alcaraz": {
+        "id": "275923",
+        "sport": "tennis",
+        "player_type": "player",
+        "calendar": "CALENDAR_ID_TENNIS"
     },
     "Argentina - Football National Team": {
         "id": "4819",
@@ -114,7 +116,7 @@ uv run python main.py --queries queries.json
 }
 ```
 
-The `calendar` field should match one of the key names defined in your `.env` file.
+The `calendar` field should match one of the key names defined in your `.env` file. The `player_type` field should be `"player"` for individuals or `"team"` for organizations.
 
 ### Interactive mode
 
