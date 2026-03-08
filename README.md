@@ -4,6 +4,17 @@ A Python tool that automatically syncs upcoming sports matches to your Google Ca
 
 ---
 
+## Index
+
+- [Features](#features)
+- [Setup & Installation](#setup--installation)
+- [Google Calendar API Setup](#google-calendar-api-setup)
+- [Configuration](#configuration)
+- [Usage](#usage)
+- [Contributing](#contributing)
+
+---
+
 ## Features
 
 - Tracks multiple teams and players across different sports (football, basketball, tennis, esports and more)
@@ -89,7 +100,7 @@ Each team is re-fetched at different rates depending on how soon their next matc
 
 ### Local state files
 
-On first run, the program automatically creates two SQLite database files in the working directory: `api_calls.db` to track your daily API usage, and `fetch_log.db` to remember when each team was last fetched. These are managed automatically.
+On first run, the program automatically creates two SQLite database files in the working directory: `api_calls.db` to track your daily API usage, and `fetch_log.db` to remember when each team was last fetched. These are managed automatically and you don't need to touch them.
 
 ---
 
