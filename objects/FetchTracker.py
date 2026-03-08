@@ -1,49 +1,57 @@
-import json
+import sqlite3
 import logging
-import os
 from datetime import datetime, timezone
 
 from config import FETCH_THRESHOLDS
 
 logger = logging.getLogger(__name__)
 
-FETCH_LOG_FILE = "fetch_log.json"
+DB_FILE = "fetch_log.db"
 
 
 class FetchTracker:
-    def __init__(self):
-        self.log = self._load()
+    def __init__(self, db_path: str = DB_FILE):
+        self._db_path = db_path
+        # For :memory: databases, keep a single connection alive for the lifetime
+        # of the object — each new connection() call would get its own empty database
+        self._conn = sqlite3.connect(db_path, check_same_thread=False) if db_path == ":memory:" else None
+        self._init_db()
 
-    def _load(self) -> dict:
-        """Load fetch log from file, or return empty dict if missing/corrupted."""
-        if not os.path.exists(FETCH_LOG_FILE):
-            return {}
-        try:
-            with open(FETCH_LOG_FILE, "r") as f:
-                return json.loads(f.read())
-        except (json.JSONDecodeError, KeyError):
-            logger.error("Could not read fetch_log.json, starting fresh")
-            return {}
+    def _connect(self) -> sqlite3.Connection:
+        if self._conn is not None:
+            return self._conn
+        return sqlite3.connect(self._db_path)
 
-    def _save(self) -> None:
-        """Persist fetch log to file."""
-        with open(FETCH_LOG_FILE, "w") as f:
-            f.write(json.dumps(self.log, indent=2))
+    def _init_db(self) -> None:
+        """Create the table if it doesn't exist yet."""
+        with self._connect() as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS fetch_log (
+                    team_name TEXT PRIMARY KEY,
+                    last_fetched TEXT NOT NULL,
+                    next_match TEXT,
+                    match_count INTEGER NOT NULL DEFAULT 0
+                )
+            """)
 
     def should_fetch(self, team_name: str) -> bool:
         """Return True if enough time has passed since the last fetch for this team."""
-        entry = self.log.get(team_name)
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT last_fetched, next_match, match_count FROM fetch_log WHERE team_name = ?",
+                (team_name,)
+            ).fetchone()
 
-        if not entry:
+        if not row:
             return True
 
-        last_fetched = datetime.fromisoformat(entry["last_fetched"])
-        next_match_str = entry.get("next_match")
-        next_match = datetime.fromisoformat(next_match_str) if next_match_str else None
+        last_fetched = datetime.fromisoformat(row[0])
+        next_match = datetime.fromisoformat(row[1]) if row[1] else None
+        match_count = row[2]
 
         now = datetime.now(timezone.utc)
         hours_since_fetch = (now - last_fetched).total_seconds() / 3600
-        recheck_hours = self._get_recheck_hours(next_match, now, entry.get("match_count", 0))
+        recheck_hours = self._get_recheck_hours(next_match, now, match_count)
 
         if hours_since_fetch >= recheck_hours:
             return True
@@ -78,9 +86,16 @@ class FetchTracker:
 
     def record_fetch(self, team_name: str, next_match: datetime | None, match_count: int) -> None:
         """Record that a fetch was just performed for this team, along with their next match time."""
-        self.log[team_name] = {
-            "last_fetched": datetime.now(timezone.utc).isoformat(),
-            "next_match": next_match.isoformat() if next_match else None,
-            "match_count": match_count
-        }
-        self._save()
+        with self._connect() as conn:
+            conn.execute("""
+                INSERT INTO fetch_log (team_name, last_fetched, next_match, match_count) VALUES (?, ?, ?, ?)
+                ON CONFLICT(team_name) DO UPDATE SET
+                    last_fetched = excluded.last_fetched,
+                    next_match = excluded.next_match,
+                    match_count = excluded.match_count
+            """, (
+                team_name,
+                datetime.now(timezone.utc).isoformat(),
+                next_match.isoformat() if next_match else None,
+                match_count
+            ))
