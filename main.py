@@ -88,6 +88,9 @@ def main() -> None:
                 break
 
             if not fetch_tracker.should_fetch(name):
+                logger.info("")
+                logger.info("--------------------------------------------------")
+                logger.info("")
                 continue
 
             matches = get_next_matches(
@@ -112,7 +115,8 @@ def main() -> None:
                 match_count = 0
 
             fetch_tracker.record_fetch(name, earliest, match_count)
-
+            
+            logger.info("")
             logger.info("--------------------------------------------------")
             logger.info("")
 
@@ -124,6 +128,10 @@ def main() -> None:
             f"(@ {deadline.hour:02}:{deadline.minute:02})"
         )
         wait(deadline, tz)
+        
+        logger.info("")
+        logger.info("------------------------------------------------------------------------")
+        logger.info("")
 
 
 if __name__ == "__main__":
