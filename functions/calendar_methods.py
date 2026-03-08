@@ -2,6 +2,8 @@ import logging
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from datetime import datetime, timedelta
+from google.oauth2.credentials import Credentials
+from objects.Match import Match
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +56,7 @@ def _build_event_body(game, time_zone: str) -> dict:
     }
 
 
-def update_events(creds, calendar_id, game_list, time_zone) -> int:
+def update_events(creds: Credentials, calendar_id: str, game_list: list[Match], time_zone: str) -> int:
     logger.info("Updating calendar...")
     service = build("calendar", "v3", credentials=creds)
 

@@ -3,6 +3,7 @@ import os
 import requests
 import json
 from dotenv import load_dotenv
+from objects.APICallTracker import APICallTracker
 
 load_dotenv()
 RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
@@ -10,7 +11,7 @@ RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
 logger = logging.getLogger(__name__)
 
 
-def search_entity(name: str, sport: str, tracker=None) -> list[dict]:
+def search_entity(name: str, sport: str, tracker: APICallTracker | None = None) -> list[dict]:
     """Search the AllSports API for a player or team by name and sport.
     Returns a list of result dicts, each containing 'id', 'name', 'type', 'gender', and 'sport'."""
     url: str = (

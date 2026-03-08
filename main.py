@@ -40,7 +40,7 @@ def load_queries(filepath: str) -> dict:
     return raw
 
 
-def build_queries_from_get_ids(tracker=None) -> dict:
+def build_queries_from_get_ids(tracker: APICallTracker | None = None) -> dict:
     """Interactively build queries using get_ids(), prompting for calendar IDs."""
     id_dict = get_ids(tracker=tracker)
     queries = {}
