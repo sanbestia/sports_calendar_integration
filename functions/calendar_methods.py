@@ -54,7 +54,7 @@ def _build_event_body(game, time_zone: str) -> dict:
     }
 
 
-def update_events(creds, calendar_id, game_list, time_zone):
+def update_events(creds, calendar_id, game_list, time_zone) -> int:
     logger.info("Updating calendar...")
     service = build("calendar", "v3", credentials=creds)
 
@@ -113,3 +113,5 @@ def update_events(creds, calendar_id, game_list, time_zone):
                 logger.info(f'Event created: {created_event.get("summary")} — {created_event.get("htmlLink")}')
             except HttpError as error:
                 logger.error(f"An error occurred: {error}")
+
+    return len(existing_events)

@@ -91,8 +91,7 @@ def test_skips_event_missing_extended_properties():
         mock_service = make_mock_service(existing_events=[event_without_props])
         mock_build.return_value = mock_service
 
-        # Should not raise, and should create a new event since no valid match was found
-        update_events(
+        result = update_events(
             creds=MagicMock(),
             calendar_id="fake_calendar_id",
             game_list=[match],
@@ -100,6 +99,7 @@ def test_skips_event_missing_extended_properties():
         )
 
     mock_service.events().insert.assert_called_once()
+    assert result == 1
 
 
 def test_creates_new_event_when_no_existing():
@@ -110,7 +110,7 @@ def test_creates_new_event_when_no_existing():
         mock_service = make_mock_service(existing_events=[])
         mock_build.return_value = mock_service
 
-        update_events(
+        result = update_events(
             creds=MagicMock(),
             calendar_id="fake_calendar_id",
             game_list=[match],
@@ -118,6 +118,7 @@ def test_creates_new_event_when_no_existing():
         )
 
     mock_service.events().insert.assert_called_once()
+    assert result == 0
 
 
 def test_does_not_create_event_when_already_exists_and_unchanged():
@@ -129,7 +130,7 @@ def test_does_not_create_event_when_already_exists_and_unchanged():
         mock_service = make_mock_service(existing_events=[existing])
         mock_build.return_value = mock_service
 
-        update_events(
+        result = update_events(
             creds=MagicMock(),
             calendar_id="fake_calendar_id",
             game_list=[match],
@@ -138,6 +139,7 @@ def test_does_not_create_event_when_already_exists_and_unchanged():
 
     mock_service.events().insert.assert_not_called()
     mock_service.events().update.assert_not_called()
+    assert result == 1
 
 
 def test_updates_event_when_start_time_changed():
@@ -152,7 +154,7 @@ def test_updates_event_when_start_time_changed():
         mock_service = make_mock_service(existing_events=[existing])
         mock_build.return_value = mock_service
 
-        update_events(
+        result = update_events(
             creds=MagicMock(),
             calendar_id="fake_calendar_id",
             game_list=[match],
@@ -161,6 +163,7 @@ def test_updates_event_when_start_time_changed():
 
     mock_service.events().update.assert_called_once()
     mock_service.events().insert.assert_not_called()
+    assert result == 1
 
 
 def test_updates_event_when_team_name_changed():
@@ -172,7 +175,7 @@ def test_updates_event_when_team_name_changed():
         mock_service = make_mock_service(existing_events=[existing])
         mock_build.return_value = mock_service
 
-        update_events(
+        result = update_events(
             creds=MagicMock(),
             calendar_id="fake_calendar_id",
             game_list=[match],
@@ -181,6 +184,7 @@ def test_updates_event_when_team_name_changed():
 
     mock_service.events().update.assert_called_once()
     mock_service.events().insert.assert_not_called()
+    assert result == 1
 
 
 def test_handles_multiple_matches():
@@ -192,7 +196,7 @@ def test_handles_multiple_matches():
         mock_service = make_mock_service(existing_events=[])
         mock_build.return_value = mock_service
 
-        update_events(
+        result = update_events(
             creds=MagicMock(),
             calendar_id="fake_calendar_id",
             game_list=[match_1, match_2],
@@ -200,3 +204,24 @@ def test_handles_multiple_matches():
         )
 
     assert mock_service.events().insert.call_count == 2
+    assert result == 0
+
+
+def test_returns_correct_count_with_multiple_existing_events():
+    """Returns the total number of existing calendar events."""
+    match = make_match(game_id="999")
+    existing_1 = make_existing_event(game_id="111")
+    existing_2 = make_existing_event(game_id="222")
+
+    with patch("functions.calendar_methods.build") as mock_build:
+        mock_service = make_mock_service(existing_events=[existing_1, existing_2])
+        mock_build.return_value = mock_service
+
+        result = update_events(
+            creds=MagicMock(),
+            calendar_id="fake_calendar_id",
+            game_list=[match],
+            time_zone="UTC"
+        )
+
+    assert result == 2

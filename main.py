@@ -99,33 +99,30 @@ def main() -> None:
                 tracker=api_tracker
             )
 
-            logger.info("")
-            
             earliest = min((m.start_time for m in matches), default=None)
-            fetch_tracker.record_fetch(name, earliest, len(matches))
 
             if matches:
-                update_events(
+                match_count = update_events(
                     creds=creds,
                     calendar_id=data_dict["calendar"],
                     game_list=matches,
                     time_zone=str(tz)
                 )
-                logger.info("")
-                
+            else:
+                match_count = 0
+
+            fetch_tracker.record_fetch(name, earliest, match_count)
+
             logger.info("--------------------------------------------------")
             logger.info("")
-        
+
         now = datetime.datetime.now(tz=tz)
         deadline = now + datetime.timedelta(minutes=sleep_minutes)
-        logger.info("")
         logger.info(api_tracker.status())
         logger.info(
-            f"Next cycle in {sleep_minutes} minute{'' if sleep_minutes == 1 else 's'} "\
+            f"Next cycle in {sleep_minutes} minute{'' if sleep_minutes == 1 else 's'} "
             f"(@ {deadline.hour:02}:{deadline.minute:02})"
         )
-        logger.info("-------------------------------------------------------------------------------")
-        logger.info("")
         wait(deadline, tz)
 
 
