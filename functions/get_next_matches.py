@@ -3,10 +3,10 @@ import os
 from datetime import datetime, timezone
 
 import pytz
+import requests
 
 from objects.Match import Match
 from objects.APICallTracker import APICallTracker
-import requests
 import json
 
 logger = logging.getLogger(__name__)
@@ -44,9 +44,9 @@ def get_next_matches(team_id: str, team_name: str, player_type: str, sport: str,
         url = _build_api_url(sport, player_type, team_id, "next", page)
 
         try:
-            request = requests.get(url, headers=headers)
+            request = requests.get(url, headers=headers, timeout=10)
             tracker.increment()
-        except (TimeoutError, ConnectionError) as e:
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
             logger.error(f"Couldn't communicate with sports API: {e}")
             return []
 
@@ -75,9 +75,9 @@ def get_next_matches(team_id: str, team_name: str, player_type: str, sport: str,
         url = _build_api_url(sport, player_type, team_id, "near")
 
         try:
-            request = requests.get(url, headers=headers)
+            request = requests.get(url, headers=headers, timeout=10)
             tracker.increment()
-        except (TimeoutError, ConnectionError) as e:
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
             logger.error(f"Couldn't communicate with sports API: {e}")
             return []
 

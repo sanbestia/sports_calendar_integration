@@ -1,6 +1,7 @@
 import datetime
 import pytest
 import json
+import requests
 from unittest.mock import patch, MagicMock
 from functions.get_next_matches import get_next_matches
 
@@ -98,7 +99,7 @@ def test_falls_back_to_near_endpoint():
 def test_returns_empty_list_on_connection_error():
     """Returns empty list gracefully when a network error occurs."""
     with patch("functions.get_next_matches.requests.get") as mock_get:
-        mock_get.side_effect = ConnectionError
+        mock_get.side_effect = requests.exceptions.ConnectionError
         result = get_next_matches("206570", "Jannik Sinner", "player", "tennis", "UTC", MagicMock())
 
     assert result == []
@@ -107,7 +108,7 @@ def test_returns_empty_list_on_connection_error():
 def test_returns_empty_list_on_timeout():
     """Returns empty list gracefully when a timeout occurs."""
     with patch("functions.get_next_matches.requests.get") as mock_get:
-        mock_get.side_effect = TimeoutError
+        mock_get.side_effect = requests.exceptions.Timeout
         result = get_next_matches("206570", "Jannik Sinner", "player", "tennis", "UTC", MagicMock())
 
     assert result == []
@@ -152,8 +153,8 @@ def test_returns_empty_list_on_empty_near_response():
     """Returns empty list when 'near' endpoint returns an empty response."""
     with patch("functions.get_next_matches.requests.get") as mock_get:
         mock_get.side_effect = [
-            make_mock_empty_response(),  # 'next' endpoint empty
-            make_mock_empty_response()   # 'near' endpoint also empty
+            make_mock_empty_response(),
+            make_mock_empty_response()
         ]
         result = get_next_matches("206570", "Jannik Sinner", "player", "tennis", "UTC", MagicMock())
 
@@ -198,7 +199,7 @@ def test_does_not_increment_tracker_on_connection_error():
     """Does not increment tracker when a network error occurs."""
     mock_tracker = MagicMock()
     with patch("functions.get_next_matches.requests.get") as mock_get:
-        mock_get.side_effect = ConnectionError
+        mock_get.side_effect = requests.exceptions.ConnectionError
         get_next_matches("206570", "Jannik Sinner", "player", "tennis", "UTC", mock_tracker)
 
     mock_tracker.increment.assert_not_called()

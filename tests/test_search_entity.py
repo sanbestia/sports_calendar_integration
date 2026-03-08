@@ -1,5 +1,6 @@
 import json
 import pytest
+import requests
 from unittest.mock import patch, MagicMock
 from functions.search_entity import search_entity, pick_entity
 
@@ -132,7 +133,7 @@ def test_search_entity_returns_empty_list_on_invalid_json():
 def test_search_entity_returns_empty_list_on_connection_error():
     """Returns empty list gracefully when a network error occurs."""
     with patch("functions.search_entity.requests.get") as mock_get:
-        mock_get.side_effect = ConnectionError
+        mock_get.side_effect = requests.exceptions.ConnectionError
         result = search_entity("spurs", "basketball", MagicMock())
 
     assert result == []
@@ -141,7 +142,7 @@ def test_search_entity_returns_empty_list_on_connection_error():
 def test_search_entity_returns_empty_list_on_timeout():
     """Returns empty list gracefully when a timeout occurs."""
     with patch("functions.search_entity.requests.get") as mock_get:
-        mock_get.side_effect = TimeoutError
+        mock_get.side_effect = requests.exceptions.Timeout
         result = search_entity("spurs", "basketball", MagicMock())
 
     assert result == []
@@ -161,7 +162,7 @@ def test_search_entity_does_not_increment_tracker_on_error():
     """Does not increment the tracker when a network error occurs."""
     mock_tracker = MagicMock()
     with patch("functions.search_entity.requests.get") as mock_get:
-        mock_get.side_effect = ConnectionError
+        mock_get.side_effect = requests.exceptions.ConnectionError
         search_entity("spurs", "basketball", mock_tracker)
 
     mock_tracker.increment.assert_not_called()
@@ -237,7 +238,6 @@ def test_pick_entity_skips_selection_prompt_for_single_hit():
         result = pick_entity(FAKE_SINGLE_HIT)
 
     assert result["id"] == "3429"
-    # Only one input call — the confirmation — no number selection
     assert mock_input.call_count == 1
 
 
@@ -255,19 +255,16 @@ def test_pick_entity_returns_correct_hit_when_second_option_chosen():
 from functions.search_entity import _ask_yes_no
 
 def test_ask_yes_no_returns_true_on_y():
-    """Returns True when user inputs Y."""
     with patch("builtins.input", return_value="Y"):
         assert _ask_yes_no("Continue? Y/N: ") is True
 
 
 def test_ask_yes_no_returns_false_on_n():
-    """Returns False when user inputs N."""
     with patch("builtins.input", return_value="N"):
         assert _ask_yes_no("Continue? Y/N: ") is False
 
 
 def test_ask_yes_no_is_case_insensitive():
-    """Accepts lowercase y and n."""
     with patch("builtins.input", side_effect=["y"]):
         assert _ask_yes_no("Continue? Y/N: ") is True
     with patch("builtins.input", side_effect=["n"]):
@@ -275,7 +272,6 @@ def test_ask_yes_no_is_case_insensitive():
 
 
 def test_ask_yes_no_retries_on_invalid_input():
-    """Re-prompts when user enters something other than Y or N."""
     with patch("builtins.input", side_effect=["maybe", "yes", "Y"]):
         result = _ask_yes_no("Continue? Y/N: ")
     assert result is True
@@ -284,21 +280,18 @@ def test_ask_yes_no_retries_on_invalid_input():
 # --- pick_entity input validation tests ---
 
 def test_pick_entity_retries_on_non_numeric_input():
-    """Re-prompts when user enters a non-numeric selection."""
     with patch("builtins.input", side_effect=["abc", "1", "Y"]):
         result = pick_entity(FAKE_HITS)
     assert result["id"] == "3429"
 
 
 def test_pick_entity_retries_on_out_of_range_input():
-    """Re-prompts when user enters a number outside valid range."""
     with patch("builtins.input", side_effect=["0", "99", "1", "Y"]):
         result = pick_entity(FAKE_HITS)
     assert result["id"] == "3429"
 
 
 def test_pick_entity_retries_on_invalid_confirmation():
-    """Re-prompts when user enters something other than Y/N at confirmation."""
     with patch("builtins.input", side_effect=["1", "maybe", "Y"]):
         result = pick_entity(FAKE_HITS)
     assert result["id"] == "3429"

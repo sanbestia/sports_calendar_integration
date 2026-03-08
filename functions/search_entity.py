@@ -26,9 +26,9 @@ def search_entity(name: str, sport: str, tracker: APICallTracker) -> list[dict]:
     }
 
     try:
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, timeout=10)
         tracker.increment()
-    except (TimeoutError, ConnectionError) as e:
+    except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
         logger.error(f"Couldn't communicate with sports API: {e}")
         return []
 
