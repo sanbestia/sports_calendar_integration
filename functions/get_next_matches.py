@@ -7,6 +7,7 @@ import requests
 
 from objects.Match import Match
 from objects.APICallTracker import APICallTracker
+from objects.schemas import NextPageResponse, NearResponse
 from functions.utils import sanitize_for_log
 import json
 
@@ -64,12 +65,14 @@ def get_next_matches(team_id: str, team_name: str, player_type: str, sport: str,
                 logger.error(f"Invalid JSON response on page {page} for {sanitize_for_log(team_name)}: {sanitize_for_log(request.text[:200])}")
                 return next_games
 
-            if "events" not in request_dict:
-                logger.error(f"Request error: 'events' key not found in response: {sanitize_for_log(str(request_dict))}")
-                return []
+            try:
+                parsed = NextPageResponse.model_validate(request_dict)
+            except Exception as e:
+                logger.error(f"Unexpected response structure on page {page} for {sanitize_for_log(team_name)}: {e}")
+                return next_games
 
-            events += request_dict["events"]
-            read_next_page = request_dict['hasNextPage']
+            events += [e.model_dump() for e in parsed.events]
+            read_next_page = parsed.hasNextPage
             page += 1
 
     if not events:
@@ -91,15 +94,17 @@ def get_next_matches(team_id: str, team_name: str, player_type: str, sport: str,
             logger.error(f"Invalid JSON response from 'near' endpoint for {sanitize_for_log(team_name)}: {sanitize_for_log(request.text[:200])}")
             return []
 
-        if "nextEvent" not in request_dict:
-            logger.error(f"Request error: 'nextEvent' key not found in response: {sanitize_for_log(str(request_dict))}")
+        try:
+            parsed = NearResponse.model_validate(request_dict)
+        except Exception as e:
+            logger.error(f"Unexpected response structure from 'near' endpoint for {sanitize_for_log(team_name)}: {e}")
             return []
 
-        if not request_dict["nextEvent"]:
+        if not parsed.nextEvent:
             logger.info("No upcoming games found using any endpoints")
             return []
 
-        events.append(request_dict["nextEvent"])
+        events += [e.model_dump() for e in parsed.nextEvent]
 
     logger.info("Got data:")
     logger.info("")
@@ -107,13 +112,13 @@ def get_next_matches(team_id: str, team_name: str, player_type: str, sport: str,
         date_time = datetime.fromtimestamp(event['startTimestamp'], tz=timezone.utc)
         date_time = date_time.astimezone(pytz.timezone(time_zone))
         round_info = event.get('roundInfo')
-        if round_info and 'name' not in round_info:
+        if round_info and round_info.get('name') is None and round_info.get('round') is not None:
             round_info['name'] = f'Round {round_info["round"]}'
         game = Match(
             side_one=event['homeTeam']['name'],
             side_two=event['awayTeam']['name'],
             tournament=event['season']['name'],
-            stage=round_info['name'] if round_info else event['tournament']['name'],
+            stage=round_info['name'] if round_info and round_info.get('name') else event['tournament']['name'],
             game_id=event['id'],
             sport=sport,
             start_time=date_time

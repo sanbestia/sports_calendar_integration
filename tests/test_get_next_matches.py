@@ -203,3 +203,24 @@ def test_does_not_increment_tracker_on_connection_error():
         get_next_matches("206570", "Jannik Sinner", "player", "tennis", "UTC", mock_tracker)
 
     mock_tracker.increment.assert_not_called()
+
+
+def test_returns_empty_list_on_invalid_response_structure():
+    """Returns empty list when API response has valid JSON but unexpected structure."""
+    with patch("functions.get_next_matches.requests.get") as mock_get:
+        mock_get.return_value = make_mock_response({"unexpected_key": "unexpected_value"})
+        result = get_next_matches("206570", "Jannik Sinner", "player", "tennis", "UTC", MagicMock())
+
+    assert result == []
+
+
+def test_near_endpoint_returns_empty_list_on_invalid_structure():
+    """Returns empty list when 'near' response has valid JSON but wrong structure."""
+    with patch("functions.get_next_matches.requests.get") as mock_get:
+        mock_get.side_effect = [
+            make_mock_empty_response(),
+            make_mock_response({"unexpected_key": "unexpected_value"})
+        ]
+        result = get_next_matches("206570", "Jannik Sinner", "player", "tennis", "UTC", MagicMock())
+
+    assert result == []

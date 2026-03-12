@@ -2,11 +2,10 @@ import logging
 import os
 import requests
 import json
-from dotenv import load_dotenv
+from pydantic import ValidationError
 from objects.APICallTracker import APICallTracker
-
-load_dotenv()
-RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
+from objects.schemas import SearchResponse
+from functions.utils import sanitize_for_log
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +13,10 @@ logger = logging.getLogger(__name__)
 def search_entity(name: str, sport: str, tracker: APICallTracker) -> list[dict]:
     """Search the AllSports API for a player or team by name and sport.
     Returns a list of result dicts, each containing 'id', 'name', 'type', 'gender', and 'sport'."""
+    api_key = os.getenv("RAPIDAPI_KEY")
+    if not api_key:
+        raise ValueError("RAPIDAPI_KEY environment variable is not set")
+
     url: str = (
         f"https://allsportsapi2.p.rapidapi.com/api/"
         f"{'' if sport.lower() == 'football' else sport.lower() + '/'}"
@@ -21,7 +24,7 @@ def search_entity(name: str, sport: str, tracker: APICallTracker) -> list[dict]:
     )
 
     headers: dict[str, str] = {
-        "X-RapidAPI-Key": RAPIDAPI_KEY,
+        "X-RapidAPI-Key": api_key,
         "X-RapidAPI-Host": "allsportsapi2.p.rapidapi.com"
     }
 
@@ -36,19 +39,25 @@ def search_entity(name: str, sport: str, tracker: APICallTracker) -> list[dict]:
         return []
 
     try:
-        results = json.loads(response.text).get("results", [])
+        raw = json.loads(response.text)
     except json.JSONDecodeError:
-        logger.error(f"Invalid JSON response for search '{name}': {response.text[:200]}")
+        logger.error(f"Invalid JSON response for search '{sanitize_for_log(name)}': {sanitize_for_log(response.text[:200])}")
+        return []
+
+    try:
+        parsed = SearchResponse.model_validate(raw)
+    except ValidationError as e:
+        logger.error(f"Unexpected response structure for search '{sanitize_for_log(name)}': {e}")
         return []
 
     hits = []
-    for result in results:
-        entity = result["entity"]
+    for result in parsed.results:
+        entity = result.entity
         hits.append({
-            "id": str(entity["id"]),
-            "name": entity["name"],
-            "player_type": "player" if "playerTeamInfo" in entity else "team",
-            "gender": entity.get("gender"),
+            "id": str(entity.id),
+            "name": entity.name,
+            "player_type": "player" if entity.playerTeamInfo is not None else "team",
+            "gender": entity.gender,
             "sport": sport
         })
 

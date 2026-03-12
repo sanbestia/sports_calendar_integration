@@ -130,6 +130,15 @@ def test_search_entity_returns_empty_list_on_invalid_json():
     assert result == []
 
 
+def test_search_entity_returns_empty_list_on_invalid_response_structure():
+    """Returns empty list when API returns valid JSON but unexpected structure."""
+    with patch("functions.search_entity.requests.get") as mock_get:
+        mock_get.return_value = make_mock_response({"results": [{"no_entity_key": True}]})
+        result = search_entity("spurs", "basketball", MagicMock())
+
+    assert result == []
+
+
 def test_search_entity_returns_empty_list_on_connection_error():
     """Returns empty list gracefully when a network error occurs."""
     with patch("functions.search_entity.requests.get") as mock_get:
