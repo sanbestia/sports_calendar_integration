@@ -3,6 +3,7 @@ from googleapiclient.discovery import Resource
 from googleapiclient.errors import HttpError
 from datetime import datetime, timedelta
 from objects.Match import Match
+from functions.utils import sanitize_for_log
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +84,7 @@ def update_events(service: Resource, calendar_id: str, game_list: list[Match], t
         if game_id:
             existing_by_game_id[game_id] = event
         else:
-            logger.warning(f"Skipping event '{event.get('summary', 'unknown')}' — no game_id in extendedProperties")
+            logger.warning(f"Skipping event '{sanitize_for_log(event.get('summary', 'unknown'))}' — no game_id in extendedProperties")
 
     newly_created = 0
 
@@ -105,9 +106,9 @@ def update_events(service: Resource, calendar_id: str, game_list: list[Match], t
                     eventId=event['id'],
                     body=event_to_update
                 ).execute()
-                logger.info(f'Event updated: {updated_event.get("summary")} — {updated_event.get("htmlLink")}')
+                logger.info(f'Event updated: {sanitize_for_log(str(updated_event.get("summary", "")))} — {sanitize_for_log(str(updated_event.get("htmlLink", "")))}')
             else:
-                logger.info(f"'{event['summary']}' already up to date")
+                logger.info(f"'{sanitize_for_log(event['summary'])}' already up to date")
         else:
             logger.info("New match upcoming! Creating event...")
             try:
@@ -115,7 +116,7 @@ def update_events(service: Resource, calendar_id: str, game_list: list[Match], t
                     calendarId=calendar_id,
                     body=_build_event_body(game, time_zone)
                 ).execute()
-                logger.info(f'Event created: {created_event.get("summary")} — {created_event.get("htmlLink")}')
+                logger.info(f'Event created: {sanitize_for_log(str(created_event.get("summary", "")))} — {sanitize_for_log(str(created_event.get("htmlLink", "")))}')
                 newly_created += 1
             except HttpError as error:
                 logger.error(f"An error occurred: {error}")

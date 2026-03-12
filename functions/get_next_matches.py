@@ -7,6 +7,7 @@ import requests
 
 from objects.Match import Match
 from objects.APICallTracker import APICallTracker
+from functions.utils import sanitize_for_log
 import json
 
 logger = logging.getLogger(__name__)
@@ -27,7 +28,7 @@ def get_next_matches(team_id: str, team_name: str, player_type: str, sport: str,
     if not api_key:
         raise ValueError("RAPIDAPI_KEY environment variable is not set")
 
-    logger.info(f"Looking for games featuring {team_name}...")
+    logger.info(f"Looking for games featuring {sanitize_for_log(team_name)}...")
     logger.info("")
 
     headers: dict[str, str] = {
@@ -55,16 +56,16 @@ def get_next_matches(team_id: str, team_name: str, player_type: str, sport: str,
             read_next_page = False
         else:
             if not request.text:
-                logger.error(f"Empty response on page {page} for {team_name}")
+                logger.error(f"Empty response on page {page} for {sanitize_for_log(team_name)}")
                 return next_games
             try:
                 request_dict = json.loads(request.text)
             except json.JSONDecodeError:
-                logger.error(f"Invalid JSON response on page {page} for {team_name}: {request.text[:200]}")
+                logger.error(f"Invalid JSON response on page {page} for {sanitize_for_log(team_name)}: {sanitize_for_log(request.text[:200])}")
                 return next_games
 
             if "events" not in request_dict:
-                logger.error(f"Request error: 'events' key not found in response: {request_dict}")
+                logger.error(f"Request error: 'events' key not found in response: {sanitize_for_log(str(request_dict))}")
                 return []
 
             events += request_dict["events"]
@@ -82,16 +83,16 @@ def get_next_matches(team_id: str, team_name: str, player_type: str, sport: str,
             return []
 
         if not request.text:
-            logger.error(f"Empty response from 'near' endpoint for {team_name}")
+            logger.error(f"Empty response from 'near' endpoint for {sanitize_for_log(team_name)}")
             return []
         try:
             request_dict = json.loads(request.text)
         except json.JSONDecodeError:
-            logger.error(f"Invalid JSON response from 'near' endpoint for {team_name}: {request.text[:200]}")
+            logger.error(f"Invalid JSON response from 'near' endpoint for {sanitize_for_log(team_name)}: {sanitize_for_log(request.text[:200])}")
             return []
 
         if "nextEvent" not in request_dict:
-            logger.error(f"Request error: 'nextEvent' key not found in response: {request_dict}")
+            logger.error(f"Request error: 'nextEvent' key not found in response: {sanitize_for_log(str(request_dict))}")
             return []
 
         if not request_dict["nextEvent"]:
@@ -118,7 +119,7 @@ def get_next_matches(team_id: str, team_name: str, player_type: str, sport: str,
             start_time=date_time
         )
 
-        logger.info(f"{game} ({time_zone})")
+        logger.info(f"{sanitize_for_log(str(game))} ({sanitize_for_log(time_zone)})")
         next_games.append(game)
 
     return next_games
