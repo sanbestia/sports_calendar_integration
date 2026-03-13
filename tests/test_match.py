@@ -56,3 +56,19 @@ def test_expected_end_time_grand_slam():
 def test_expected_end_time_esport():
     match = make_match(sport="esport")
     assert match.expected_end_time == START_TIME + datetime.timedelta(hours=5)
+
+
+def test_expected_end_time_non_tennis_non_esport_uses_default():
+    """Sports other than tennis and esport (e.g. basketball) use the default duration only."""
+    for sport in ["basketball", "football", "baseball", "ice-hockey", "volleyball"]:
+        match = make_match(sport=sport)
+        assert match.expected_end_time == START_TIME + datetime.timedelta(hours=2), \
+            f"Failed for sport: {sport}"
+
+
+def test_expected_end_time_grand_slam_with_year_in_name():
+    """Grand Slam detection works when the year or extra text is appended to the tournament name."""
+    for tournament in ["Wimbledon 2026", "US Open 2026", "Australian Open 2026", "French Open 2026"]:
+        match = make_match(sport="tennis", tournament=tournament)
+        assert match.expected_end_time == START_TIME + datetime.timedelta(hours=5), \
+            f"Failed for tournament: {tournament}"

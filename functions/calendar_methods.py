@@ -1,4 +1,5 @@
 import logging
+import time
 from googleapiclient.discovery import Resource
 from googleapiclient.errors import HttpError
 from datetime import datetime, timedelta
@@ -21,10 +22,22 @@ ICONS: dict[str, str] = {
     "esport": "🎮"
 }
 
+_RETRY_DELAY_SECONDS = 5
+
+
+def _execute_with_retry(request) -> dict:
+    """Execute a Google API request, retrying once on BrokenPipeError."""
+    try:
+        return request.execute()
+    except BrokenPipeError:
+        logger.warning("Connection dropped mid-request, retrying in 5 seconds...")
+        time.sleep(_RETRY_DELAY_SECONDS)
+        return request.execute()
+
 
 def new_calendar(service: Resource, calendar_name: str) -> dict | None:
     try:
-        created_calendar = service.calendars().insert(body={"summary": calendar_name}).execute()
+        created_calendar = _execute_with_retry(service.calendars().insert(body={"summary": calendar_name}))
         return created_calendar
     except HttpError as error:
         logger.error(f"An error occurred creating calendar: {error}")
@@ -63,16 +76,16 @@ def update_events(service: Resource, calendar_id: str, game_list: list[Match], t
     time_min = (datetime.now()-timedelta(hours=12)).astimezone().replace(microsecond=0).isoformat()
     existing_events = []
 
-    response = service.events().list(calendarId=calendar_id, timeMin=time_min).execute()
+    response = _execute_with_retry(service.events().list(calendarId=calendar_id, timeMin=time_min))
     existing_events.extend(response.get("items", []))
     next_page_token = response.get("nextPageToken")
 
     while next_page_token:
-        response = service.events().list(
+        response = _execute_with_retry(service.events().list(
             calendarId=calendar_id,
             timeMin=time_min,
             pageToken=next_page_token
-        ).execute()
+        ))
         existing_events.extend(response.get("items", []))
         next_page_token = response.get("nextPageToken")
 
@@ -99,23 +112,23 @@ def update_events(service: Resource, calendar_id: str, game_list: list[Match], t
                 or props.get("side_two") != game.side_two
             ):
                 logger.info("Found change in event schedule. Updating...")
-                event_to_update = service.events().get(calendarId=calendar_id, eventId=event["id"]).execute()
+                event_to_update = _execute_with_retry(service.events().get(calendarId=calendar_id, eventId=event["id"]))
                 event_to_update.update(_build_event_body(game, time_zone))
-                updated_event = service.events().update(
+                updated_event = _execute_with_retry(service.events().update(
                     calendarId=calendar_id,
                     eventId=event['id'],
                     body=event_to_update
-                ).execute()
+                ))
                 logger.info(f'Event updated: {sanitize_for_log(str(updated_event.get("summary", "")))} — {sanitize_for_log(str(updated_event.get("htmlLink", "")))}')
             else:
                 logger.info(f"'{sanitize_for_log(event['summary'])}' already up to date")
         else:
             logger.info("New match upcoming! Creating event...")
             try:
-                created_event = service.events().insert(
+                created_event = _execute_with_retry(service.events().insert(
                     calendarId=calendar_id,
                     body=_build_event_body(game, time_zone)
-                ).execute()
+                ))
                 logger.info(f'Event created: {sanitize_for_log(str(created_event.get("summary", "")))} — {sanitize_for_log(str(created_event.get("htmlLink", "")))}')
                 newly_created += 1
             except HttpError as error:
