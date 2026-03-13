@@ -261,7 +261,7 @@ def test_pick_entity_returns_correct_hit_when_second_option_chosen():
 
 # --- _ask_yes_no tests ---
 
-from functions.search_entity import _ask_yes_no
+from functions.utils import _ask_yes_no
 
 def test_ask_yes_no_returns_true_on_y():
     with patch("builtins.input", return_value="Y"):

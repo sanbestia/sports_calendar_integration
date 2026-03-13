@@ -1,5 +1,6 @@
 import logging
-from functions.search_entity import search_entity, pick_entity, _ask_yes_no
+from functions.search_entity import search_entity, pick_entity
+from functions.utils import _ask_yes_no
 
 logger = logging.getLogger(__name__)
 

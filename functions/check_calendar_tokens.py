@@ -1,6 +1,7 @@
 # check validity of stored tokens
 # if not present, create token file
 
+import logging
 import os.path
 
 from google.auth.transport.requests import Request
@@ -11,28 +12,30 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 # If modifying these scopes, delete the file token.json.
 SCOPES: list[str] = ["https://www.googleapis.com/auth/calendar"]
 
+logger = logging.getLogger(__name__)
+
 
 def check_calendar_tokens() -> Credentials:
-    print("Checking tokens...")
+    logger.info("Checking tokens...")
     creds = None
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first time.
     if os.path.exists(path="token.json"):
         creds = Credentials.from_authorized_user_file(filename="token.json", scopes=SCOPES)
-        print("Tokens exist")
+        logger.info("Tokens exist")
     # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
-        print("No valid tokens available, creating new ones")
+        logger.info("No valid tokens available, creating new ones")
         refreshed = False
         if creds and creds.expired and creds.refresh_token:
             try:
                 creds.refresh(Request())
-                print("Creds refreshed.")
+                logger.info("Creds refreshed.")
                 refreshed = True
             except Exception as e:
-                print(f"Failed to refresh non-valid tokens.\n"
-                      f"{e}\n"
-                      f"Deleting tokens and trying to restart authorization flow...")
+                logger.error("Failed to refresh non-valid tokens.")
+                logger.error(e)
+                logger.error("Deleting tokens and trying to restart authorization flow...")
                 os.remove("token.json")
         if not refreshed:
             flow = (InstalledAppFlow.from_client_secrets_file(
@@ -43,8 +46,8 @@ def check_calendar_tokens() -> Credentials:
         # Save the credentials for the next run
         with open("token.json", "w") as token:
             token.write(creds.to_json())
-            print("Tokens created")
+            logger.info("Tokens created")
     else:
-        print("Available tokens are valid")
-    print()
+        logger.info("Available tokens are valid")
+    logger.info("")
     return creds

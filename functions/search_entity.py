@@ -5,7 +5,7 @@ import json
 from pydantic import ValidationError
 from objects.APICallTracker import APICallTracker
 from objects.schemas import SearchResponse
-from functions.utils import sanitize_for_log
+from functions.utils import sanitize_for_log, _ask_yes_no
 
 logger = logging.getLogger(__name__)
 
@@ -62,15 +62,6 @@ def search_entity(name: str, sport: str, tracker: APICallTracker) -> list[dict]:
         })
 
     return hits
-
-
-def _ask_yes_no(prompt: str) -> bool:
-    """Prompt the user with a Y/N question, re-asking until a valid answer is given."""
-    while True:
-        answer = input(prompt).strip().upper()
-        if answer in ("Y", "N"):
-            return answer == "Y"
-        logger.info("Please answer Y or N.")
 
 
 def pick_entity(hits: list[dict]) -> dict | None:
