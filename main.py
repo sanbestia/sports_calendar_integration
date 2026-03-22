@@ -107,12 +107,27 @@ def main() -> None:
             earliest = min((m.start_time for m in matches), default=None)
 
             if matches:
-                match_count = update_events(
-                    service=calendar_service,
-                    calendar_id=data_dict["calendar"],
-                    game_list=matches,
-                    time_zone=str(tz)
-                )
+                try:
+                    match_count = update_events(
+                        service=calendar_service,
+                        calendar_id=data_dict["calendar"],
+                        game_list=matches,
+                        time_zone=str(tz)
+                    )
+                except BrokenPipeError:
+                    logger.warning("Calendar connection lost (post-sleep?). Reconnecting and retrying...")
+                    creds = check_calendar_tokens()
+                    calendar_service = build("calendar", "v3", credentials=creds)
+                    try:
+                        match_count = update_events(
+                            service=calendar_service,
+                            calendar_id=data_dict["calendar"],
+                            game_list=matches,
+                            time_zone=str(tz)
+                        )
+                    except Exception as e:
+                        logger.error(f"Calendar update failed after reconnect for '{name}': {e}")
+                        match_count = 0
             else:
                 match_count = 0
 

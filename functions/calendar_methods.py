@@ -1,5 +1,4 @@
 import logging
-import time
 from googleapiclient.discovery import Resource
 from googleapiclient.errors import HttpError
 from datetime import datetime, timedelta
@@ -22,17 +21,9 @@ ICONS: dict[str, str] = {
     "esport": "🎮"
 }
 
-_RETRY_DELAY_SECONDS = 5
-
-
 def _execute_with_retry(request) -> dict:
-    """Execute a Google API request, retrying once on BrokenPipeError."""
-    try:
-        return request.execute()
-    except BrokenPipeError:
-        logger.warning("Connection dropped mid-request, retrying in 5 seconds...")
-        time.sleep(_RETRY_DELAY_SECONDS)
-        return request.execute()
+    """Execute a Google API request."""
+    return request.execute()
 
 
 def new_calendar(service: Resource, calendar_name: str) -> dict | None:
