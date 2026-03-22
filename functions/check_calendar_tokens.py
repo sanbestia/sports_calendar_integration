@@ -32,7 +32,7 @@ def check_calendar_tokens() -> Credentials:
                 creds.refresh(Request())
                 logger.info("Creds refreshed.")
                 refreshed = True
-            except Exception as e:
+            except RefreshError as e:
                 logger.error("Failed to refresh non-valid tokens.")
                 logger.error(e)
                 logger.error("Deleting tokens and trying to restart authorization flow...")

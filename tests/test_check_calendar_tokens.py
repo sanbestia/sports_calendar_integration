@@ -1,6 +1,7 @@
 import pytest
 import os
 from unittest.mock import patch, MagicMock, mock_open
+from google.auth.exceptions import RefreshError
 from functions.check_calendar_tokens import check_calendar_tokens
 
 
@@ -51,7 +52,7 @@ def test_refreshes_creds_when_expired():
 def test_deletes_token_and_runs_flow_when_refresh_fails():
     """Deletes token file and runs auth flow when refresh raises an exception."""
     mock_creds = make_expired_creds()
-    mock_creds.refresh.side_effect = Exception("Refresh failed")
+    mock_creds.refresh.side_effect = RefreshError("Refresh failed")
     mock_flow_creds = make_valid_creds()
 
     mock_flow = MagicMock()
@@ -103,3 +104,15 @@ def test_saves_token_file_after_auth_flow():
         check_calendar_tokens()
 
     mock_file.assert_called_once_with("token.json", "w")
+
+
+def test_non_refresh_error_propagates():
+    """Non-RefreshError exceptions from token refresh are not caught."""
+    mock_creds = make_expired_creds()
+    mock_creds.refresh.side_effect = OSError("Network error")
+
+    with patch("functions.check_calendar_tokens.os.path.exists", return_value=True), \
+         patch("functions.check_calendar_tokens.Credentials.from_authorized_user_file", return_value=mock_creds), \
+         patch("functions.check_calendar_tokens.Request"):
+        with pytest.raises(OSError):
+            check_calendar_tokens()
