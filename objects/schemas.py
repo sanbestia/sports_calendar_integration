@@ -21,6 +21,10 @@ class RoundInfo(BaseModel):
     name: str | None = None
 
 
+class EventStatus(BaseModel):
+    type: str
+
+
 class Event(BaseModel):
     id: int | str
     startTimestamp: int
@@ -29,6 +33,7 @@ class Event(BaseModel):
     season: Season
     tournament: Tournament
     roundInfo: RoundInfo | None = None
+    status: EventStatus | None = None
 
 
 # --- Top-level response models ---

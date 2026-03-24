@@ -109,6 +109,10 @@ def get_next_matches(team_id: str, team_name: str, player_type: str, sport: str,
     logger.info("Got data:")
     logger.info("")
     for event in events:
+        if event.get('status', {}).get('type') == 'canceled':
+            logger.info(f"Skipping cancelled match: {sanitize_for_log(event['homeTeam']['name'])} vs {sanitize_for_log(event['awayTeam']['name'])}")
+            continue
+
         date_time = datetime.fromtimestamp(event['startTimestamp'], tz=timezone.utc)
         date_time = date_time.astimezone(pytz.timezone(time_zone))
         round_info = event.get('roundInfo')

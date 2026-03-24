@@ -13,7 +13,8 @@ FAKE_EVENT = {
     "awayTeam": {"id": 206570, "name": "Jannik Sinner"},
     "season": {"name": "ATP"},
     "roundInfo": {"round": 1, "name": "Finals"},
-    "tournament": {"name": "ATP Ultra Finals, Mars"}
+    "tournament": {"name": "ATP Ultra Finals, Mars"},
+    "status": {"type": "notstarted"}
 }
 
 FAKE_NEAR_RESPONSE = {
@@ -214,6 +215,25 @@ def test_returns_empty_list_on_invalid_response_structure():
         result = get_next_matches("206570", "Jannik Sinner", "player", "tennis", "UTC", MagicMock())
 
     assert result == []
+
+
+def test_skips_cancelled_matches():
+    """Does not create Match objects for events with status type 'canceled'."""
+    cancelled_event = {**FAKE_EVENT, "status": {"type": "canceled"}}
+    with patch("functions.get_next_matches.requests.get") as mock_get:
+        mock_get.return_value = make_mock_response({"events": [cancelled_event], "hasNextPage": False})
+        result = get_next_matches("4819", "Argentina", "team", "football", "UTC", MagicMock())
+
+    assert result == []
+
+
+def test_includes_notstarted_matches():
+    """Includes events with status type 'notstarted'."""
+    with patch("functions.get_next_matches.requests.get") as mock_get:
+        mock_get.return_value = make_mock_response(FAKE_NEXT_RESPONSE_SINGLE_PAGE)
+        result = get_next_matches("206570", "Jannik Sinner", "player", "tennis", "UTC", MagicMock())
+
+    assert len(result) == 1
 
 
 def test_near_endpoint_returns_empty_list_on_invalid_structure():
