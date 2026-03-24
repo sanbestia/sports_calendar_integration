@@ -12,8 +12,8 @@ def make_event(**overrides) -> dict:
     base = {
         "id": 1,
         "startTimestamp": 1772823600,
-        "homeTeam": {"name": "Carlos Alcaraz"},
-        "awayTeam": {"name": "Jannik Sinner"},
+        "homeTeam": {"id": 275923, "name": "Carlos Alcaraz"},
+        "awayTeam": {"id": 206570, "name": "Jannik Sinner"},
         "season": {"name": "ATP Tour"},
         "tournament": {"name": "ATP Finals"},
         "roundInfo": {"round": 1, "name": "Finals"}

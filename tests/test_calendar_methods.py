@@ -9,7 +9,8 @@ from functions.calendar_methods import update_events, new_calendar
 START_TIME = datetime.datetime(2025, 6, 15, 14, 0, 0, tzinfo=datetime.timezone.utc)
 
 
-def make_match(game_id="123", side_one="Team A", side_two="Team B", start_time=START_TIME):
+def make_match(game_id="123", side_one="Team A", side_two="Team B", start_time=START_TIME,
+               home_team_id="h1", away_team_id="a1"):
     return Match(
         side_one=side_one,
         side_two=side_two,
@@ -17,11 +18,14 @@ def make_match(game_id="123", side_one="Team A", side_two="Team B", start_time=S
         stage="Round 1",
         game_id=game_id,
         sport="football",
-        start_time=start_time
+        start_time=start_time,
+        home_team_id=home_team_id,
+        away_team_id=away_team_id,
     )
 
 
-def make_existing_event(game_id="123", side_one="Team A", side_two="Team B", start_time=START_TIME):
+def make_existing_event(game_id="123", side_one="Team A", side_two="Team B", start_time=START_TIME,
+                        home_team_id="h1", away_team_id="a1"):
     """Helper to create a fake existing calendar event using extendedProperties."""
     return {
         "id": "google_event_id_abc",
@@ -30,6 +34,8 @@ def make_existing_event(game_id="123", side_one="Team A", side_two="Team B", sta
         "extendedProperties": {
             "private": {
                 "game_id": str(game_id),
+                "home_team_id": home_team_id,
+                "away_team_id": away_team_id,
                 "side_one": side_one,
                 "side_two": side_two,
                 "start_time": start_time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -88,7 +94,8 @@ def test_skips_event_missing_extended_properties():
         service=mock_service,
         calendar_id="fake_calendar_id",
         game_list=[match],
-        time_zone="UTC"
+        time_zone="UTC",
+        team_id="h1"
     )
 
     mock_service.events().insert.assert_called_once()
@@ -104,7 +111,8 @@ def test_creates_new_event_when_no_existing():
         service=mock_service,
         calendar_id="fake_calendar_id",
         game_list=[match],
-        time_zone="UTC"
+        time_zone="UTC",
+        team_id="h1"
     )
 
     mock_service.events().insert.assert_called_once()
@@ -113,15 +121,16 @@ def test_creates_new_event_when_no_existing():
 
 def test_does_not_create_event_when_already_exists_and_unchanged():
     """Skips creation and update when event already exists and nothing has changed."""
-    match = make_match(game_id="123")
-    existing = make_existing_event(game_id="123")
+    match = make_match(game_id="123", home_team_id="h1", away_team_id="a1")
+    existing = make_existing_event(game_id="123", home_team_id="h1", away_team_id="a1")
     mock_service = make_mock_service(existing_events=[existing])
 
     result = update_events(
         service=mock_service,
         calendar_id="fake_calendar_id",
         game_list=[match],
-        time_zone="UTC"
+        time_zone="UTC",
+        team_id="h1"
     )
 
     mock_service.events().insert.assert_not_called()
@@ -134,15 +143,16 @@ def test_updates_event_when_start_time_changed():
     original_time = START_TIME
     new_time = START_TIME + datetime.timedelta(hours=3)
 
-    existing = make_existing_event(game_id="123", start_time=original_time)
-    match = make_match(game_id="123", start_time=new_time)
+    existing = make_existing_event(game_id="123", start_time=original_time, home_team_id="h1", away_team_id="a1")
+    match = make_match(game_id="123", start_time=new_time, home_team_id="h1", away_team_id="a1")
     mock_service = make_mock_service(existing_events=[existing])
 
     result = update_events(
         service=mock_service,
         calendar_id="fake_calendar_id",
         game_list=[match],
-        time_zone="UTC"
+        time_zone="UTC",
+        team_id="h1"
     )
 
     mock_service.events().update.assert_called_once()
@@ -152,15 +162,37 @@ def test_updates_event_when_start_time_changed():
 
 def test_updates_event_when_team_name_changed():
     """Updates an existing event when a team name has changed."""
-    existing = make_existing_event(game_id="123", side_one="Old Team A")
-    match = make_match(game_id="123", side_one="New Team A")
+    existing = make_existing_event(game_id="123", side_one="Old Team A", home_team_id="h1", away_team_id="a1")
+    match = make_match(game_id="123", side_one="New Team A", home_team_id="h1", away_team_id="a1")
     mock_service = make_mock_service(existing_events=[existing])
 
     result = update_events(
         service=mock_service,
         calendar_id="fake_calendar_id",
         game_list=[match],
-        time_zone="UTC"
+        time_zone="UTC",
+        team_id="h1"
+    )
+
+    mock_service.events().update.assert_called_once()
+    mock_service.events().insert.assert_not_called()
+    assert result == 1
+
+
+def test_updates_event_when_team_ids_missing():
+    """Patches an existing event missing home/away team IDs (migration path for old events)."""
+    existing = make_existing_event(game_id="123")
+    del existing["extendedProperties"]["private"]["home_team_id"]
+    del existing["extendedProperties"]["private"]["away_team_id"]
+    match = make_match(game_id="123", home_team_id="h1", away_team_id="a1")
+    mock_service = make_mock_service(existing_events=[existing])
+
+    result = update_events(
+        service=mock_service,
+        calendar_id="fake_calendar_id",
+        game_list=[match],
+        time_zone="UTC",
+        team_id="h1"
     )
 
     mock_service.events().update.assert_called_once()
@@ -178,7 +210,8 @@ def test_handles_multiple_matches():
         service=mock_service,
         calendar_id="fake_calendar_id",
         game_list=[match_1, match_2],
-        time_zone="UTC"
+        time_zone="UTC",
+        team_id="h1"
     )
 
     assert mock_service.events().insert.call_count == 2
@@ -187,16 +220,93 @@ def test_handles_multiple_matches():
 
 def test_returns_correct_count_with_multiple_existing_events():
     """Returns the total number of existing calendar events."""
-    match = make_match(game_id="999")
-    existing_1 = make_existing_event(game_id="111")
-    existing_2 = make_existing_event(game_id="222")
+    match = make_match(game_id="999", home_team_id="h1", away_team_id="a1")
+    existing_1 = make_existing_event(game_id="111", home_team_id="other_h", away_team_id="other_a")
+    existing_2 = make_existing_event(game_id="222", home_team_id="other_h", away_team_id="other_a")
     mock_service = make_mock_service(existing_events=[existing_1, existing_2])
 
     result = update_events(
         service=mock_service,
         calendar_id="fake_calendar_id",
         game_list=[match],
-        time_zone="UTC"
+        time_zone="UTC",
+        team_id="h1"
     )
 
     assert result == 1
+
+
+# --- orphan deletion tests ---
+
+def test_deletes_orphaned_event_for_same_team():
+    """Deletes a future event whose game_id is no longer in the game list (same team)."""
+    match = make_match(game_id="new_id", home_team_id="h1", away_team_id="a1")
+    orphan = make_existing_event(game_id="old_id", home_team_id="h1", away_team_id="a1")
+    mock_service = make_mock_service(existing_events=[orphan])
+
+    update_events(
+        service=mock_service,
+        calendar_id="fake_calendar_id",
+        game_list=[match],
+        time_zone="UTC",
+        team_id="h1"
+    )
+
+    mock_service.events().delete.assert_called_once_with(
+        calendarId="fake_calendar_id", eventId="google_event_id_abc"
+    )
+
+
+def test_deletes_orphaned_event_when_queried_team_is_away():
+    """Deletes a future orphaned event when the queried team is the away side."""
+    match = make_match(game_id="new_id", home_team_id="h1", away_team_id="a1")
+    orphan = make_existing_event(game_id="old_id", home_team_id="h1", away_team_id="a1")
+    mock_service = make_mock_service(existing_events=[orphan])
+
+    update_events(
+        service=mock_service,
+        calendar_id="fake_calendar_id",
+        game_list=[match],
+        time_zone="UTC",
+        team_id="a1"  # queried team is the away side
+    )
+
+    mock_service.events().delete.assert_called_once_with(
+        calendarId="fake_calendar_id", eventId="google_event_id_abc"
+    )
+
+
+def test_does_not_delete_event_for_different_team():
+    """Does not delete a future event belonging to a different team."""
+    match = make_match(game_id="new_id", home_team_id="h1", away_team_id="a1")
+    other_team_event = make_existing_event(game_id="other_id", home_team_id="other_h", away_team_id="other_a")
+    mock_service = make_mock_service(existing_events=[other_team_event])
+
+    update_events(
+        service=mock_service,
+        calendar_id="fake_calendar_id",
+        game_list=[match],
+        time_zone="UTC",
+        team_id="h1"
+    )
+
+    mock_service.events().delete.assert_not_called()
+
+
+def test_does_not_delete_event_without_team_ids():
+    """Does not delete a future event that has no team IDs (old manually created events)."""
+    match = make_match(game_id="new_id")
+    legacy_event = make_existing_event(game_id="legacy_id")
+    del legacy_event["extendedProperties"]["private"]["home_team_id"]
+    del legacy_event["extendedProperties"]["private"]["away_team_id"]
+    mock_service = make_mock_service(existing_events=[legacy_event])
+
+    update_events(
+        service=mock_service,
+        calendar_id="fake_calendar_id",
+        game_list=[match],
+        time_zone="UTC",
+        team_id="h1"
+    )
+
+    mock_service.events().delete.assert_not_called()

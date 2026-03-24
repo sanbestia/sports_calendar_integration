@@ -51,6 +51,8 @@ def _build_event_body(game: Match, time_zone: str) -> dict:
         'extendedProperties': {
             'private': {
                 'game_id': str(game.game_id),
+                'home_team_id': str(game.home_team_id) if game.home_team_id is not None else '',
+                'away_team_id': str(game.away_team_id) if game.away_team_id is not None else '',
                 'side_one': game.side_one,
                 'side_two': game.side_two,
                 'start_time': game.start_time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -59,7 +61,7 @@ def _build_event_body(game: Match, time_zone: str) -> dict:
     }
 
 
-def update_events(service: Resource, calendar_id: str, game_list: list[Match], time_zone: str) -> int:
+def update_events(service: Resource, calendar_id: str, game_list: list[Match], time_zone: str, team_id: str) -> int:
     logger.info("Updating calendar...")
 
     logger.info("Looking up future events...")
@@ -101,6 +103,8 @@ def update_events(service: Resource, calendar_id: str, game_list: list[Match], t
                 props.get("start_time") != game.start_time.strftime("%Y-%m-%d %H:%M:%S")
                 or props.get("side_one") != game.side_one
                 or props.get("side_two") != game.side_two
+                or props.get("home_team_id") != game.home_team_id
+                or props.get("away_team_id") != game.away_team_id
             ):
                 logger.info("Found change in event schedule. Updating...")
                 event_to_update = _execute_with_retry(service.events().get(calendarId=calendar_id, eventId=event["id"]))
@@ -126,6 +130,21 @@ def update_events(service: Resource, calendar_id: str, game_list: list[Match], t
                 logger.error(f"An error occurred: {error}")
 
     matched_event_ids = {str(game.game_id) for game in game_list}
+
+    # Delete future events for this team that are no longer in the game list
+    # (cancelled matches or matches whose API id changed)
+    for event in existing_events:
+        props = event.get("extendedProperties", {}).get("private", {})
+        if team_id not in (props.get("home_team_id"), props.get("away_team_id")):
+            continue
+        game_id = props.get("game_id")
+        if game_id and game_id not in matched_event_ids:
+            try:
+                _execute_with_retry(service.events().delete(calendarId=calendar_id, eventId=event["id"]))
+                logger.info(f"Deleted cancelled/orphaned event: '{sanitize_for_log(event.get('summary', ''))}'")
+            except HttpError as error:
+                logger.error(f"Error deleting event '{sanitize_for_log(event.get('summary', ''))}': {error}")
+
     team_event_count = sum(
         1 for event in existing_events
         if event.get("extendedProperties", {}).get("private", {}).get("game_id") in matched_event_ids

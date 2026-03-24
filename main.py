@@ -112,7 +112,8 @@ def main() -> None:
                         service=calendar_service,
                         calendar_id=data_dict["calendar"],
                         game_list=matches,
-                        time_zone=str(tz)
+                        time_zone=str(tz),
+                        team_id=data_dict["id"]
                     )
                 except BrokenPipeError:
                     logger.warning("Calendar connection lost (post-sleep?). Reconnecting and retrying...")
@@ -123,7 +124,8 @@ def main() -> None:
                             service=calendar_service,
                             calendar_id=data_dict["calendar"],
                             game_list=matches,
-                            time_zone=str(tz)
+                            time_zone=str(tz),
+                            team_id=data_dict["id"]
                         )
                     except Exception as e:
                         logger.error(f"Calendar update failed after reconnect for '{name}': {e}")

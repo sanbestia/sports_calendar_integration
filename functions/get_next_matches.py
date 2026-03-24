@@ -121,7 +121,9 @@ def get_next_matches(team_id: str, team_name: str, player_type: str, sport: str,
             stage=round_info['name'] if round_info and round_info.get('name') else event['tournament']['name'],
             game_id=event['id'],
             sport=sport,
-            start_time=date_time
+            start_time=date_time,
+            home_team_id=event['homeTeam']['id'],
+            away_team_id=event['awayTeam']['id'],
         )
 
         logger.info(f"{sanitize_for_log(str(game))} ({sanitize_for_log(time_zone)})")

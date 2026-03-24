@@ -11,7 +11,9 @@ class Match:
         stage: str,
         game_id: int | str,
         sport: str,
-        start_time: datetime.datetime
+        start_time: datetime.datetime,
+        home_team_id: int | str | None = None,
+        away_team_id: int | str | None = None,
     ):
         self.side_one = side_one
         self.side_two = side_two
@@ -20,6 +22,8 @@ class Match:
         self.game_id = str(game_id)
         self.sport = sport
         self.start_time = start_time
+        self.home_team_id = str(home_team_id) if home_team_id is not None else None
+        self.away_team_id = str(away_team_id) if away_team_id is not None else None
         self.define_expected_end_time()
 
     def define_expected_end_time(self) -> None:

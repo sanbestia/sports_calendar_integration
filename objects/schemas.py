@@ -4,6 +4,7 @@ from pydantic import BaseModel, field_validator
 # --- Shared models ---
 
 class TeamName(BaseModel):
+    id: int | str
     name: str
 
 

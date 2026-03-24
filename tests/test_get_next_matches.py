@@ -9,8 +9,8 @@ from functions.get_next_matches import get_next_matches
 FAKE_EVENT = {
     "id": 1,
     "startTimestamp": 1772823600,
-    "homeTeam": {"name": "Carlos Alcaraz"},
-    "awayTeam": {"name": "Jannik Sinner"},
+    "homeTeam": {"id": 275923, "name": "Carlos Alcaraz"},
+    "awayTeam": {"id": 206570, "name": "Jannik Sinner"},
     "season": {"name": "ATP"},
     "roundInfo": {"round": 1, "name": "Finals"},
     "tournament": {"name": "ATP Ultra Finals, Mars"}
@@ -68,6 +68,8 @@ def test_returns_list_of_matches():
     assert result[0].side_one == "Carlos Alcaraz"
     assert result[0].side_two == "Jannik Sinner"
     assert result[0].game_id == "1"
+    assert result[0].home_team_id == "275923"
+    assert result[0].away_team_id == "206570"
 
 
 def test_paginates_correctly():
