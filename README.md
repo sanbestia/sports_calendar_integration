@@ -103,6 +103,31 @@ Each team is re-fetched at different rates depending on how soon their next matc
 
 On first run, the program automatically creates two SQLite database files in the working directory: `api_calls.db` to track your daily API usage, and `fetch_log.db` to remember when each team was last fetched. These are managed automatically and you don't need to touch them.
 
+### Analysing the local databases
+
+`functions/db_stats.py` provides read-only functions for querying both databases. Import them directly in a Python script or notebook:
+
+```python
+from functions.db_stats import (
+    calls_today, remaining_calls_today, calls_on, calls_in_range,
+    days_at_max, pct_days_at_max, avg_daily_calls,
+    busiest_days, calls_per_period, api_budget_forecast,
+    all_calls_df, all_fetches_df, fetch_gap_df,
+    teams_due_now, teams_with_no_upcoming_match, stale_teams,
+)
+
+# Examples
+calls_today()                        # API calls made today
+remaining_calls_today()              # calls left before hitting the daily limit
+calls_in_range(date(2026,1,1), date(2026,1,31))  # total calls in January
+pct_days_at_max()                    # % of days the limit was reached
+busiest_days(5)                      # top 5 days by call volume (DataFrame)
+calls_per_period("ME")               # monthly totals (DataFrame)
+api_budget_forecast()                # projected end-of-day total based on current rate
+teams_due_now()                      # teams the scheduler would fetch right now
+stale_teams(hours=48)                # teams not fetched in over 48 hours (DataFrame)
+```
+
 ---
 
 ## Usage
