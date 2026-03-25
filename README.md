@@ -58,7 +58,7 @@ A Python tool that automatically syncs upcoming sports matches to your Google Ca
 
 2. Navigate to **APIs & Services → Library**, search for "Google Calendar API", and enable it.
 
-3. Go to **APIs & Services → OAuth consent screen**. Choose **External**, fill in the app name and your email, and save. You don't need to publish the app — leaving it in testing mode is fine for personal use.
+3. Go to **APIs & Services → OAuth consent screen**. Choose **External**, fill in the app name and your email, and save. You don't need to publish the app; leaving it in testing mode is fine for personal use.
 
 4. Go to **APIs & Services → Credentials → Create Credentials → OAuth client ID**. Choose **Desktop app**, give it a name, and download the resulting file. Rename it to `credentials.json` and place it in the root directory of the project.
 
