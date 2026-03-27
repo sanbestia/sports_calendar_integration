@@ -24,6 +24,7 @@ A Python tool that automatically syncs upcoming sports matches to your Google Ca
 - Falls back to alternative API endpoints when the primary one returns no results
 - Supports predefined query files for fully automated runs
 - Interactive mode to search for teams and players on the fly
+- Built-in analytics for querying API usage and fetch history via a standalone CLI or Python module
 
 ---
 
