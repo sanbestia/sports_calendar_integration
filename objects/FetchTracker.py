@@ -11,6 +11,7 @@ DB_FILE = "fetch_log.db"
 
 class FetchTracker:
     def __init__(self, db_path: str = DB_FILE):
+        """Initialise the tracker and create the fetch_log table if it doesn't exist."""
         self._db_path = db_path
         # For :memory: databases, keep a single connection alive for the lifetime
         # of the object — each new connection() call would get its own empty database
@@ -18,6 +19,7 @@ class FetchTracker:
         self._init_db()
 
     def _connect(self) -> sqlite3.Connection:
+        """Return the persistent in-memory connection, or open a new file-based connection."""
         if self._conn is not None:
             return self._conn
         return sqlite3.connect(self._db_path)
@@ -42,7 +44,7 @@ class FetchTracker:
                 (team_name,)
             ).fetchone()
 
-        if not row:
+        if not row:  # no entry for this team yet; first fetch is always allowed
             return True
 
         last_fetched = datetime.fromisoformat(row[0])
@@ -56,11 +58,27 @@ class FetchTracker:
         if hours_since_fetch >= recheck_hours:
             return True
 
-        logger.info(
-            f"Skipping {team_name} — fetched {hours_since_fetch:.1f}h ago, "
-            f"next check in {recheck_hours - hours_since_fetch:.1f}h"
-        )
         return False
+
+    def hours_until_next_fetch(self, team_name: str) -> float:
+        """Return how many hours until this team is due for a fetch (0.0 if due now or no record)."""
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT last_fetched, next_match, match_count FROM fetch_log WHERE team_name = ?",
+                (team_name,)
+            ).fetchone()
+
+        if not row:
+            return 0.0
+
+        last_fetched = datetime.fromisoformat(row[0])
+        next_match = datetime.fromisoformat(row[1]) if row[1] else None
+        match_count = row[2]
+
+        now = datetime.now(timezone.utc)
+        hours_since_fetch = (now - last_fetched).total_seconds() / 3600
+        recheck_hours = self._get_recheck_hours(next_match, now, match_count)
+        return max(0.0, recheck_hours - hours_since_fetch)
 
     def _get_recheck_hours(self, next_match: datetime | None, now: datetime, match_count: int = 0) -> float:
         """Return the recheck interval in hours based on how soon the next match is."""
@@ -69,7 +87,7 @@ class FetchTracker:
 
         hours_until_match = (next_match - now).total_seconds() / 3600
 
-        if match_count == 1:
+        if match_count == 1:  # imminent-interval checks only apply when a single upcoming match is known
             if hours_until_match <= FETCH_THRESHOLDS["imminent_close"]["hours"]:
                 return FETCH_THRESHOLDS["imminent_close"]["recheck_hours"]
             if hours_until_match <= FETCH_THRESHOLDS["imminent"]["hours"]:

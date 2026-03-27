@@ -22,8 +22,11 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(message)s"
 )
-logging.getLogger("googleapiclient.discovery_cache").setLevel(logging.ERROR)
+logging.getLogger("googleapiclient.discovery_cache").setLevel(logging.ERROR)  # suppress the verbose 'file_cache unavailable' warning emitted by the Google client
 logger = logging.getLogger(__name__)
+
+
+_REQUIRED_QUERY_FIELDS = {"id", "sport", "player_type", "calendar"}
 
 
 def load_queries(filepath: str) -> dict:
@@ -32,11 +35,14 @@ def load_queries(filepath: str) -> dict:
         raw = json.load(f)
 
     for name, data in raw.items():
-        env_key = data.get("calendar")
+        missing = _REQUIRED_QUERY_FIELDS - data.keys()
+        if missing:
+            raise ValueError(f"Query '{name}' is missing required fields: {', '.join(sorted(missing))}")
+        env_key = data["calendar"]
         resolved = os.getenv(env_key)
         if not resolved:
             raise ValueError(f"Environment variable '{env_key}' not found for '{name}'")
-        data["calendar"] = resolved
+        data["calendar"] = resolved  # replace the env var key with the actual calendar ID so callers get the resolved value
 
     return raw
 
@@ -57,6 +63,7 @@ def build_queries_from_get_ids(tracker: APICallTracker | None = None) -> dict:
 
 
 def main() -> None:
+    """Parse args, initialise services, and run the main fetch-and-sync loop."""
     parser = argparse.ArgumentParser(description="Sports Calendar Integration")
     parser.add_argument(
         "--queries",
@@ -90,7 +97,8 @@ def main() -> None:
                 break
 
             if not fetch_tracker.should_fetch(name):
-                logger.info("")
+                hours_left = fetch_tracker.hours_until_next_fetch(name)
+                logger.info(f"Skipping {name} — next fetch in {hours_left:.1f}h")
                 logger.info("--------------------------------------------------")
                 logger.info("")
                 continue
@@ -104,8 +112,9 @@ def main() -> None:
                 tracker=api_tracker
             )
 
-            earliest = min((m.start_time for m in matches), default=None)
+            earliest = min((m.start_time for m in matches), default=None)  # default=None avoids ValueError when matches is empty
 
+            match_count = 0
             if matches:
                 try:
                     match_count = update_events(
@@ -129,9 +138,6 @@ def main() -> None:
                         )
                     except Exception as e:
                         logger.error(f"Calendar update failed after reconnect for '{name}': {e}")
-                        match_count = 0
-            else:
-                match_count = 0
 
             fetch_tracker.record_fetch(name, earliest, match_count)
 
