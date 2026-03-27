@@ -134,48 +134,74 @@ def test_calls_on_returns_zero_for_missing_date(api_db):
 # --- days_at_max ---
 
 def test_days_at_max_returns_correct_dates(api_db):
-    result = days_at_max(api_db, limit=100)
+    result = days_at_max(api_db, limit=100, raw=True)
     assert result == [date(2026, 1, 2), date(2026, 1, 4)]
 
 
 def test_days_at_max_excludes_days_below_limit(api_db):
-    result = days_at_max(api_db, limit=100)
+    result = days_at_max(api_db, limit=100, raw=True)
     assert date(2026, 1, 1) not in result
     assert date(2026, 1, 3) not in result
 
 
 def test_days_at_max_returns_empty_list_when_none_reached(api_db):
-    assert days_at_max(api_db, limit=101) == []
+    assert days_at_max(api_db, limit=101, raw=True) == []
 
 
 def test_days_at_max_returns_empty_list_on_empty_db(empty_api_db):
-    assert days_at_max(empty_api_db, limit=100) == []
+    assert days_at_max(empty_api_db, limit=100, raw=True) == []
+
+
+def test_days_at_max_formats_as_dd_mm_yyyy_by_default(api_db):
+    result = days_at_max(api_db, limit=100)
+    assert result == ["02-01-2026", "04-01-2026"]
+
+
+def test_days_at_max_returns_strings_by_default(api_db):
+    result = days_at_max(api_db, limit=100)
+    assert all(isinstance(d, str) for d in result)
 
 
 # --- pct_days_at_max ---
 
 def test_pct_days_at_max_returns_correct_percentage(api_db):
     # 2 out of 4 days at limit=100 → 50%
-    assert pct_days_at_max(api_db, limit=100) == pytest.approx(50.0)
+    assert pct_days_at_max(api_db, limit=100, raw=True) == pytest.approx(50.0)
 
 
 def test_pct_days_at_max_returns_zero_when_none_reached(api_db):
-    assert pct_days_at_max(api_db, limit=101) == pytest.approx(0.0)
+    assert pct_days_at_max(api_db, limit=101, raw=True) == pytest.approx(0.0)
 
 
 def test_pct_days_at_max_returns_zero_on_empty_db(empty_api_db):
-    assert pct_days_at_max(empty_api_db, limit=100) == pytest.approx(0.0)
+    assert pct_days_at_max(empty_api_db, limit=100, raw=True) == pytest.approx(0.0)
+
+
+def test_pct_days_at_max_formats_with_percent_sign_by_default(api_db):
+    assert pct_days_at_max(api_db, limit=100) == "50.00%"
+
+
+def test_pct_days_at_max_returns_string_by_default(api_db):
+    assert isinstance(pct_days_at_max(api_db, limit=100), str)
 
 
 # --- avg_daily_calls ---
 
 def test_avg_daily_calls_returns_correct_average(api_db):
     # (40 + 100 + 60 + 100) / 4 = 75.0
-    assert avg_daily_calls(api_db) == pytest.approx(75.0)
+    assert avg_daily_calls(api_db, raw=True) == pytest.approx(75.0)
 
 
 def test_avg_daily_calls_returns_zero_on_empty_db(empty_api_db):
-    assert avg_daily_calls(empty_api_db) == pytest.approx(0.0)
+    assert avg_daily_calls(empty_api_db, raw=True) == pytest.approx(0.0)
+
+
+def test_avg_daily_calls_rounds_to_2dp_by_default(api_db):
+    # 75.0 rounds to 75.0 — use a non-round average to verify rounding
+    # (40 + 100 + 60) / 3 = 66.666... → 66.67
+    result = avg_daily_calls(api_db)
+    assert isinstance(result, float)
+    assert result == round(result, 2)
 
 
 # --- all_calls_df ---
@@ -220,13 +246,13 @@ def test_all_fetches_df_has_correct_row_count(fetch_db):
 
 
 def test_all_fetches_df_parses_timestamps_as_utc(fetch_db):
-    df = all_fetches_df(fetch_db)
+    df = all_fetches_df(fetch_db, raw=True)
     assert df["last_fetched"].dt.tz is not None
     assert str(df["last_fetched"].dt.tz) == "UTC"
 
 
 def test_all_fetches_df_null_next_match_is_nat(fetch_db):
-    df = all_fetches_df(fetch_db)
+    df = all_fetches_df(fetch_db, raw=True)
     fever_row = df[df["team_name"] == "Indiana Fever"].iloc[0]
     assert pd.isna(fever_row["next_match"])
 
@@ -235,6 +261,27 @@ def test_all_fetches_df_returns_empty_dataframe_on_empty_db(empty_fetch_db):
     df = all_fetches_df(empty_fetch_db)
     assert isinstance(df, pd.DataFrame)
     assert len(df) == 0
+
+
+def test_all_fetches_df_formats_datetimes_as_strings_by_default(fetch_db):
+    df = all_fetches_df(fetch_db)
+    assert pd.api.types.is_string_dtype(df["last_fetched"])
+    assert pd.api.types.is_string_dtype(df["next_match"])
+
+
+def test_all_fetches_df_datetime_format_by_default(fetch_db):
+    df = all_fetches_df(fetch_db)
+    alcaraz = df[df["team_name"] == "Carlos Alcaraz"].iloc[0]
+    # format: "DD-MM-YYYY HH:MM:SS +00:00"
+    import re
+    assert re.match(r"\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2} \+00:00", alcaraz["last_fetched"])
+    assert re.match(r"\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2} \+00:00", alcaraz["next_match"])
+
+
+def test_all_fetches_df_null_next_match_is_empty_string_by_default(fetch_db):
+    df = all_fetches_df(fetch_db)
+    fever_row = df[df["team_name"] == "Indiana Fever"].iloc[0]
+    assert fever_row["next_match"] == ""
 
 
 # --- fetch_gap_df ---
@@ -263,6 +310,18 @@ def test_fetch_gap_df_hours_until_match_is_nan_when_no_next_match(fetch_db):
     df = fetch_gap_df(fetch_db)
     fever_row = df[df["team_name"] == "Indiana Fever"].iloc[0]
     assert pd.isna(fever_row["hours_until_match"])
+
+
+def test_fetch_gap_df_formats_datetimes_as_strings_by_default(fetch_db):
+    df = fetch_gap_df(fetch_db)
+    assert pd.api.types.is_string_dtype(df["last_fetched"])
+    assert pd.api.types.is_string_dtype(df["next_match"])
+
+
+def test_fetch_gap_df_rounds_float_columns_to_2dp_by_default(fetch_db):
+    df = fetch_gap_df(fetch_db)
+    for val in df["hours_since_fetch"].dropna():
+        assert val == round(val, 2)
 
 
 # --- remaining_calls_today ---

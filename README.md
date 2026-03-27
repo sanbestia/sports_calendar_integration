@@ -10,7 +10,8 @@ A Python tool that automatically syncs upcoming sports matches to your Google Ca
 - [Setup & Installation](#setup--installation)
 - [Google Calendar API Setup](#google-calendar-api-setup)
 - [Configuration](#configuration)
-- [Usage](#usage)
+- [Running the Script](#running-the-script)
+- [Database Analytics](#database-analytics)
 - [Contributing](#contributing)
 
 ---
@@ -103,34 +104,9 @@ Each team is re-fetched at different rates depending on how soon their next matc
 
 On first run, the program automatically creates two SQLite database files in the working directory: `api_calls.db` to track your daily API usage, and `fetch_log.db` to remember when each team was last fetched. These are managed automatically and you don't need to touch them.
 
-### Analysing the local databases
-
-`functions/db_stats.py` provides read-only functions for querying both databases. Import them directly in a Python script or notebook:
-
-```python
-from functions.db_stats import (
-    calls_today, remaining_calls_today, calls_on, calls_in_range,
-    days_at_max, pct_days_at_max, avg_daily_calls,
-    busiest_days, calls_per_period, api_budget_forecast,
-    all_calls_df, all_fetches_df, fetch_gap_df,
-    teams_due_now, teams_with_no_upcoming_match, stale_teams,
-)
-
-# Examples
-calls_today()                        # API calls made today
-remaining_calls_today()              # calls left before hitting the daily limit
-calls_in_range(date(2026,1,1), date(2026,1,31))  # total calls in January
-pct_days_at_max()                    # % of days the limit was reached
-busiest_days(5)                      # top 5 days by call volume (DataFrame)
-calls_per_period("ME")               # monthly totals (DataFrame)
-api_budget_forecast()                # projected end-of-day total based on current rate
-teams_due_now()                      # teams the scheduler would fetch right now
-stale_teams(hours=48)                # teams not fetched in over 48 hours (DataFrame)
-```
-
 ---
 
-## Usage
+## Running the Script
 
 ### Looking up team and player IDs
 
@@ -181,6 +157,50 @@ You will be prompted to enter team/player names, select from results, and provid
 ### Running tests
 ```bash
 uv run pytest -v
+```
+
+---
+
+## Database Analytics
+
+`functions/db_stats.py` provides read-only functions for querying both databases (`api_calls.db` and `fetch_log.db`). It can be used in two ways:
+
+**As a CLI** — call any function by name, with optional positional arguments:
+```bash
+uv run python functions/db_stats.py                        # list all available functions
+uv run python functions/db_stats.py calls_today
+uv run python functions/db_stats.py stale_teams 24
+uv run python functions/db_stats.py calls_in_range 2026-01-01 2026-01-31
+```
+
+**As a module** — import directly in a Python script or notebook:
+```python
+from functions.db_stats import (
+    calls_today, remaining_calls_today, calls_on, calls_in_range,
+    days_at_max, pct_days_at_max, avg_daily_calls,
+    busiest_days, calls_per_period, api_budget_forecast,
+    all_calls_df, all_fetches_df, fetch_gap_df,
+    teams_due_now, teams_with_no_upcoming_match, stale_teams,
+)
+
+# Examples
+calls_today()                        # API calls made today
+remaining_calls_today()              # calls left before hitting the daily limit
+calls_in_range(date(2026,1,1), date(2026,1,31))  # total calls in January
+pct_days_at_max()                    # % of days the limit was reached
+busiest_days(5)                      # top 5 days by call volume (DataFrame)
+calls_per_period("ME")               # monthly totals (DataFrame)
+api_budget_forecast()                # projected end-of-day total based on current rate
+teams_due_now()                      # teams the scheduler would fetch right now
+stale_teams(hours=48)                # teams not fetched in over 48 hours (DataFrame)
+```
+
+Functions that return datetimes, percentages, or floats format their output for readability by default (datetimes as `DD-MM-YYYY HH:MM:SS +00:00`, percentages with `%`, floats rounded to 2 decimal places). Pass `raw=True` to get native Python types for programmatic use:
+```python
+pct_days_at_max()            # "50.00%"
+pct_days_at_max(raw=True)    # 50.0
+days_at_max()                # ["02-01-2026", "04-01-2026"]
+days_at_max(raw=True)        # [datetime.date(2026, 1, 2), datetime.date(2026, 1, 4)]
 ```
 
 ---
