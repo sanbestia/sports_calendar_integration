@@ -23,10 +23,12 @@ ICONS: dict[str, str] = {
 
 def _execute_with_retry(request) -> dict:
     """Execute a Google API request."""
+    # thin wrapper so retry logic can be re-added here without modifying every call site
     return request.execute()
 
 
 def new_calendar(service: Resource, calendar_name: str) -> dict | None:
+    """Create a new Google Calendar with the given name and return its resource dict, or None on failure."""
     try:
         created_calendar = _execute_with_retry(service.calendars().insert(body={"summary": calendar_name}))
         return created_calendar
@@ -49,7 +51,7 @@ def _build_event_body(game: Match, time_zone: str) -> dict:
             'timeZone': time_zone,
         },
         'extendedProperties': {
-            'private': {
+            'private': {  # these fields are compared in update_events to detect reschedules; must stay in sync with that check
                 'game_id': str(game.game_id),
                 'home_team_id': str(game.home_team_id) if game.home_team_id is not None else '',
                 'away_team_id': str(game.away_team_id) if game.away_team_id is not None else '',
@@ -62,11 +64,13 @@ def _build_event_body(game: Match, time_zone: str) -> dict:
 
 
 def update_events(service: Resource, calendar_id: str, game_list: list[Match], time_zone: str, team_id: str) -> int:
+    """Sync a list of matches to Google Calendar: create new events, update changed ones, and delete orphans."""
     logger.info("Updating calendar...")
 
     logger.info("Looking up future events...")
     logger.info("")
-    time_min = (datetime.now()-timedelta(hours=12)).astimezone().replace(microsecond=0).isoformat()
+    lookback = datetime.now() - timedelta(hours=12)  # -12h to catch in-progress games
+    time_min = lookback.astimezone().replace(microsecond=0).isoformat()  # microsecond=0 because GCal API rejects sub-second precision
     existing_events = []
 
     response = _execute_with_retry(service.events().list(calendarId=calendar_id, timeMin=time_min))
@@ -99,6 +103,7 @@ def update_events(service: Resource, calendar_id: str, game_list: list[Match], t
 
         if event:
             props = event.get("extendedProperties", {}).get("private", {})
+            # compare stored private properties (not the Calendar's own start time) to detect reschedules or team changes
             if (
                 props.get("start_time") != game.start_time.strftime("%Y-%m-%d %H:%M:%S")
                 or props.get("side_one") != game.side_one
@@ -107,7 +112,7 @@ def update_events(service: Resource, calendar_id: str, game_list: list[Match], t
                 or props.get("away_team_id") != game.away_team_id
             ):
                 logger.info("Found change in event schedule. Updating...")
-                event_to_update = _execute_with_retry(service.events().get(calendarId=calendar_id, eventId=event["id"]))
+                event_to_update = _execute_with_retry(service.events().get(calendarId=calendar_id, eventId=event["id"]))  # fetch full event first to preserve fields not in _build_event_body (e.g. attendees)
                 event_to_update.update(_build_event_body(game, time_zone))
                 updated_event = _execute_with_retry(service.events().update(
                     calendarId=calendar_id,
@@ -135,7 +140,7 @@ def update_events(service: Resource, calendar_id: str, game_list: list[Match], t
     # (cancelled matches or matches whose API id changed)
     for event in existing_events:
         props = event.get("extendedProperties", {}).get("private", {})
-        if team_id not in (props.get("home_team_id"), props.get("away_team_id")):
+        if team_id not in (props.get("home_team_id"), props.get("away_team_id")):  # skip events belonging to other teams that share this calendar
             continue
         game_id = props.get("game_id")
         if game_id and game_id not in matched_event_ids:
@@ -145,6 +150,7 @@ def update_events(service: Resource, calendar_id: str, game_list: list[Match], t
             except HttpError as error:
                 logger.error(f"Error deleting event '{sanitize_for_log(event.get('summary', ''))}': {error}")
 
+    # count existing events that survived (not deleted); add newly_created for the total returned to FetchTracker
     team_event_count = sum(
         1 for event in existing_events
         if event.get("extendedProperties", {}).get("private", {}).get("game_id") in matched_event_ids

@@ -17,6 +17,7 @@ def search_entity(name: str, sport: str, tracker: APICallTracker) -> list[dict]:
     if not api_key:
         raise ValueError("RAPIDAPI_KEY environment variable is not set")
 
+    # football is the API default and has no sport prefix in the path; all other sports are prefixed
     url: str = (
         f"https://allsportsapi2.p.rapidapi.com/api/"
         f"{'' if sport.lower() == 'football' else sport.lower() + '/'}"
@@ -56,7 +57,7 @@ def search_entity(name: str, sport: str, tracker: APICallTracker) -> list[dict]:
         hits.append({
             "id": str(entity.id),
             "name": entity.name,
-            "player_type": "player" if entity.playerTeamInfo is not None else "team",
+            "player_type": "player" if entity.playerTeamInfo is not None else "team",  # API sets playerTeamInfo to a non-None value for players; None means it's a team
             "gender": entity.gender,
             "sport": sport
         })

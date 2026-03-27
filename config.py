@@ -12,6 +12,8 @@ MAIN_LOOP_SLEEP_MINUTES = 5
 MAX_API_CALLS = 100
 
 GRAND_SLAM_TOURNAMENTS = ["US Open", "Wimbledon", "Australian Open", "French Open"]
+
+# Additive duration increments (hours); 'default' applies to all sports, sport-specific values stack on top in Match.define_expected_end_time
 SPORT_DURATIONS = {
     "default": 2,
     "tennis": 1,

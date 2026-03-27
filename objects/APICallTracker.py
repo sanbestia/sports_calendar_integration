@@ -10,8 +10,9 @@ DB_FILE = "api_calls.db"
 
 class APICallTracker:
     def __init__(self, db_path: str = DB_FILE):
+        """Initialise the tracker, creating the database table and loading today's call count."""
         self.daily_limit = MAX_API_CALLS
-        self.current_date = date.today()
+        self.current_date = date.today()  # cached locally; compared in _check_reset to detect day rollover
         self._db_path = db_path
         # For :memory: databases, keep a single connection alive for the lifetime
         # of the object — each new connection() call would get its own empty database
@@ -20,6 +21,7 @@ class APICallTracker:
         self.count = self._load()
 
     def _connect(self) -> sqlite3.Connection:
+        """Return the persistent in-memory connection, or open a new file-based connection."""
         if self._conn is not None:
             return self._conn
         return sqlite3.connect(self._db_path)
@@ -56,6 +58,7 @@ class APICallTracker:
         self._check_reset()
         self.count += 1
         with self._connect() as conn:
+            # UPSERT: 'excluded' refers to the row that was going to be inserted
             conn.execute("""
                 INSERT INTO api_calls (date, count) VALUES (?, ?)
                 ON CONFLICT(date) DO UPDATE SET count = excluded.count

@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 def check_calendar_tokens() -> Credentials:
+    """Return valid Google Calendar credentials, refreshing or re-authorising as needed."""
     logger.info("Checking tokens...")
     creds = None
     # The file token.json stores the user's access and refresh tokens, and is

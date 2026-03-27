@@ -15,6 +15,7 @@ def _ask_non_empty(prompt: str) -> str:
 
 
 def get_ids(tracker=None) -> dict[str, dict[str, str]]:
+    """Interactively search for players/teams and return a mapping of entity ID to name, sport, and player_type."""
     id_dict: dict[str, dict[str, str]] = {}
 
     while True:
@@ -28,8 +29,8 @@ def get_ids(tracker=None) -> dict[str, dict[str, str]]:
             continue
 
         chosen = pick_entity(hits)
-        if chosen:
-            id_dict[chosen["id"]] = {
+        if chosen:  # None when user declines; still falls through to the search-again prompt so they can exit without selecting
+            id_dict[chosen["id"]] = {  # keyed by entity ID; re-adding the same entity overwrites rather than duplicates
                 "name": chosen["name"],
                 "sport": chosen["sport"],
                 "player_type": chosen["player_type"]
@@ -42,6 +43,7 @@ def get_ids(tracker=None) -> dict[str, dict[str, str]]:
 
 
 def main():
+    """Standalone entry point for running the ID lookup tool from the command line."""
     from objects.APICallTracker import APICallTracker
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     tracker = APICallTracker()
