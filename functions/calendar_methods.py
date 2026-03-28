@@ -144,6 +144,14 @@ def update_events(service: Resource, calendar_id: str, game_list: list[Match], t
             continue
         game_id = props.get("game_id")
         if game_id and game_id not in matched_event_ids:
+            # Don't delete events that have already started — the sports API only returns upcoming games,
+            # so past events will never appear in game_list even if they weren't cancelled
+            event_start_str = event.get("start", {}).get("dateTime", "")
+            if event_start_str:
+                event_start = datetime.fromisoformat(event_start_str).astimezone()
+                # Skip deletion of past/in-progress events
+                if event_start <= datetime.now().astimezone():
+                    continue
             try:
                 _execute_with_retry(service.events().delete(calendarId=calendar_id, eventId=event["id"]))
                 logger.info(f"Deleted cancelled/orphaned event: '{sanitize_for_log(event.get('summary', ''))}'")

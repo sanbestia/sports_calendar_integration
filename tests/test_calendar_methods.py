@@ -7,9 +7,10 @@ from functions.calendar_methods import update_events, new_calendar
 
 
 START_TIME = datetime.datetime(2025, 6, 15, 14, 0, 0, tzinfo=datetime.timezone.utc)
+FUTURE_START_TIME = datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=30)
 
 
-def make_match(game_id="123", side_one="Team A", side_two="Team B", start_time=START_TIME,
+def make_match(game_id="123", side_one="Team A", side_two="Team B", start_time=FUTURE_START_TIME,
                home_team_id="h1", away_team_id="a1"):
     return Match(
         side_one=side_one,
@@ -24,13 +25,14 @@ def make_match(game_id="123", side_one="Team A", side_two="Team B", start_time=S
     )
 
 
-def make_existing_event(game_id="123", side_one="Team A", side_two="Team B", start_time=START_TIME,
+def make_existing_event(game_id="123", side_one="Team A", side_two="Team B", start_time=FUTURE_START_TIME,
                         home_team_id="h1", away_team_id="a1"):
     """Helper to create a fake existing calendar event using extendedProperties."""
     return {
         "id": "google_event_id_abc",
         "summary": f"{side_one} vs {side_two} - Some League (Round 1)",
         "description": "Last updated: 2025-01-01 00:00:00",
+        "start": {"dateTime": start_time.isoformat()},
         "extendedProperties": {
             "private": {
                 "game_id": str(game_id),
@@ -300,6 +302,29 @@ def test_does_not_delete_event_without_team_ids():
     del legacy_event["extendedProperties"]["private"]["home_team_id"]
     del legacy_event["extendedProperties"]["private"]["away_team_id"]
     mock_service = make_mock_service(existing_events=[legacy_event])
+
+    update_events(
+        service=mock_service,
+        calendar_id="fake_calendar_id",
+        game_list=[match],
+        time_zone="UTC",
+        team_id="h1"
+    )
+
+    mock_service.events().delete.assert_not_called()
+
+
+def test_does_not_delete_past_event():
+    """Does not delete an event that has already started, even if it's not in the game list.
+
+    The sports API only returns upcoming games, so past events will never appear in game_list
+    regardless of whether they were cancelled. Deleting them based on absence from game_list
+    would incorrectly remove completed matches from the calendar.
+    """
+    match = make_match(game_id="new_id", home_team_id="h1", away_team_id="a1")
+    past_event = make_existing_event(game_id="old_id", home_team_id="h1", away_team_id="a1",
+                                     start_time=START_TIME)  # START_TIME is in the past
+    mock_service = make_mock_service(existing_events=[past_event])
 
     update_events(
         service=mock_service,
