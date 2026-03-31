@@ -11,7 +11,7 @@ from functions.check_calendar_tokens import check_calendar_tokens
 from functions.calendar_methods import update_events
 from functions.get_next_matches import get_next_matches
 from functions.get_ids import get_ids
-from functions.time_keeper import wait
+from functions.utils import wait
 from objects.APICallTracker import APICallTracker
 from objects.FetchTracker import FetchTracker
 from config import MAIN_LOOP_SLEEP_MINUTES
