@@ -1,4 +1,6 @@
 import logging
+import time
+import random
 from googleapiclient.discovery import Resource
 from googleapiclient.errors import HttpError
 from datetime import datetime, timedelta
@@ -21,10 +23,22 @@ ICONS: dict[str, str] = {
     "esport": "🎮"
 }
 
+_RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
+_MAX_RETRIES = 4
+_BASE_DELAY = 1.0  # seconds
+
+
 def _execute_with_retry(request) -> dict:
-    """Execute a Google API request."""
-    # thin wrapper so retry logic can be re-added here without modifying every call site
-    return request.execute()
+    """Execute a Google API request with exponential backoff on transient errors."""
+    for attempt in range(_MAX_RETRIES):
+        try:
+            return request.execute()
+        except HttpError as e:
+            if e.status_code not in _RETRYABLE_STATUS_CODES or attempt == _MAX_RETRIES - 1:
+                raise
+            delay = _BASE_DELAY * (2 ** attempt) + random.uniform(0, 1)
+            logger.warning(f"Google API error {e.status_code}, retrying in {delay:.1f}s (attempt {attempt + 1}/{_MAX_RETRIES})")
+            time.sleep(delay)
 
 
 def new_calendar(service: Resource, calendar_name: str) -> dict | None:
