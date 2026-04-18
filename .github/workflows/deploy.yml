@@ -9,6 +9,25 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Update system packages on VM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.ORACLE_VM_HOST }}
+          username: ubuntu
+          key: ${{ secrets.ORACLE_VM_SSH_KEY }}
+          script: |
+            sudo apt-get update -q
+            sudo DEBIAN_FRONTEND=noninteractive apt-get upgrade -y -q
+
+      - name: Write queries.json to VM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.ORACLE_VM_HOST }}
+          username: ubuntu
+          key: ${{ secrets.ORACLE_VM_SSH_KEY }}
+          script: |
+            echo '${{ secrets.QUERIES_JSON_B64 }}' | base64 -d > /home/ubuntu/sports_calendar_integration/queries.json
+
       - name: Deploy to VM
         uses: appleboy/ssh-action@v1.0.3
         with:
